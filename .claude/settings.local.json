@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm create *)",
+      "Bash(npx create-vite@latest --help)",
+      "Bash(npx create-vite@latest . --template react-ts --overwrite --no-interactive)",
+      "Bash(npm install *)",
+      "Bash(rm -f src/App.css src/assets/hero.png src/assets/react.svg src/assets/vite.svg public/vite.svg)",
+      "Bash(rmdir src/assets)",
+      "Bash(npx tsc *)",
+      "Bash(rm -f .env.local dist -r)",
+      "Bash(rm -rf dist)",
+      "Bash(npm run *)"
+    ]
+  }
+}
