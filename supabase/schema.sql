@@ -1,14 +1,18 @@
 -- ============================================================================
--- Reno-K — Check-in chantier
+-- Reno-K — Check-in chantier (MVP v2)
 -- Schéma de base de données Supabase (Postgres + RLS)
 --
 -- À exécuter dans : Supabase Dashboard > SQL Editor > New query
 -- (ou via `supabase db push` si tu utilises la CLI Supabase)
+--
+-- Ce fichier crée TOUT depuis zéro. Si un projet Supabase existe déjà avec
+-- l'ancien schéma, ne lance pas ce fichier tel quel — demande d'abord un
+-- script de migration pour ne pas perdre de données.
 -- ============================================================================
 
 -- ----------------------------------------------------------------------------
 -- 1. PROFILES (utilisateurs applicatifs, 1:1 avec auth.users)
---    role = 'admin' | 'ouvrier'
+--    role = 'admin' | 'ouvrier'  (le rôle "responsable de chantier" arrive en V2)
 -- ----------------------------------------------------------------------------
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
@@ -21,7 +25,6 @@ create table if not exists public.profiles (
 
 comment on table public.profiles is 'Un profil par utilisateur (admin ou ouvrier), lié à auth.users';
 
--- Fonction utilitaire : l'utilisateur courant est-il admin ?
 create or replace function public.is_admin()
 returns boolean
 language sql
@@ -35,7 +38,6 @@ as $$
   );
 $$;
 
--- Crée automatiquement un profil "ouvrier" à l'inscription d'un nouvel utilisateur
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -65,9 +67,16 @@ create table if not exists public.chantiers (
   id uuid primary key default gen_random_uuid(),
   nom text not null,
   adresse text not null,
+  client text,
   latitude double precision,
   longitude double precision,
-  rayon_metres integer not null default 200, -- tolérance géofence pour le check-in
+  rayon_metres integer not null default 200,
+  -- Que faire si un ouvrier pointe hors du rayon autorisé ?
+  --  'bloquer'   : le pointage est refusé, l'ouvrier ne peut pas continuer
+  --  'justifier' : le pointage est accepté mais l'ouvrier doit écrire un motif
+  mode_hors_zone text not null default 'justifier' check (mode_hors_zone in ('bloquer', 'justifier')),
+  date_debut date,
+  date_fin date,
   statut text not null default 'actif' check (statut in ('actif', 'termine')),
   created_at timestamptz not null default now()
 );
@@ -84,28 +93,83 @@ create table if not exists public.chantier_assignments (
 );
 
 -- ----------------------------------------------------------------------------
--- 4. POINTAGES (check-in / check-out)
+-- 4. POINTAGES
+--    Un pointage = UN évènement (arrivée, début de pause, fin de pause, départ).
+--    Une journée d'un ouvrier sur un chantier = plusieurs lignes liées par
+--    ouvrier_id + chantier_id + la date.
 -- ----------------------------------------------------------------------------
 create table if not exists public.pointages (
   id uuid primary key default gen_random_uuid(),
+
+  -- Généré sur le téléphone AU MOMENT du pointage (avant même d'avoir du
+  -- réseau). Sert de clé anti-doublon : si le même pointage est envoyé deux
+  -- fois pendant la synchro hors-ligne, la deuxième tentative est ignorée.
+  client_uuid uuid not null unique,
+
   ouvrier_id uuid not null references public.profiles(id) on delete cascade,
   chantier_id uuid not null references public.chantiers(id) on delete restrict,
-  check_in_at timestamptz not null default now(),
-  check_in_lat double precision,
-  check_in_lng double precision,
-  check_in_distance_m integer, -- distance calculée entre position ouvrier et chantier
-  check_out_at timestamptz,
-  check_out_lat double precision,
-  check_out_lng double precision,
+
+  type text not null check (type in ('arrivee', 'pause_debut', 'pause_fin', 'depart')),
+
+  -- Heure du téléphone au moment du pointage (peut être hors-ligne, donc
+  -- antérieure à l'heure d'arrivée en base) et heure du serveur à la
+  -- réception. Comparer les deux aide à détecter une horloge de téléphone
+  -- trafiquée.
+  heure_appareil timestamptz not null,
+  heure_serveur timestamptz not null default now(),
+
+  latitude double precision,
+  longitude double precision,
+  precision_gps_m double precision,
+  distance_chantier_m integer,
+
+  hors_zone boolean not null default false,
+  justification text,
+  statut text not null default 'accepte' check (statut in ('accepte', 'hors_zone', 'corrige', 'en_attente')),
+
+  modele_telephone text,
+  cree_hors_ligne boolean not null default false,
+
   created_at timestamptz not null default now()
 );
 
-create index if not exists pointages_ouvrier_idx on public.pointages(ouvrier_id, check_in_at desc);
-create index if not exists pointages_chantier_idx on public.pointages(chantier_id, check_in_at desc);
--- Un ouvrier ne peut avoir qu'un seul pointage "ouvert" (sans check-out) à la fois
-create unique index if not exists pointages_one_open_per_ouvrier
-  on public.pointages(ouvrier_id)
-  where check_out_at is null;
+create index if not exists pointages_ouvrier_idx on public.pointages(ouvrier_id, heure_appareil desc);
+create index if not exists pointages_chantier_idx on public.pointages(chantier_id, heure_appareil desc);
+
+-- ----------------------------------------------------------------------------
+-- 5. CORRECTIONS_AUDIT
+--    Un ouvrier ne peut JAMAIS modifier un pointage depuis son écran (voir
+--    policies RLS plus bas). Seul un admin peut corriger, et chaque
+--    correction est tracée automatiquement ici (avant/après/qui/quand).
+-- ----------------------------------------------------------------------------
+create table if not exists public.corrections_audit (
+  id uuid primary key default gen_random_uuid(),
+  pointage_id uuid not null references public.pointages(id) on delete cascade,
+  ancien_contenu jsonb not null,
+  nouveau_contenu jsonb not null,
+  modifie_par uuid references public.profiles(id),
+  created_at timestamptz not null default now()
+);
+
+-- Capture automatiquement chaque UPDATE sur pointages (peu importe qui/quoi
+-- fait la modification côté app) — impossible d'oublier de tracer.
+create or replace function public.log_pointage_correction()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.corrections_audit (pointage_id, ancien_contenu, nouveau_contenu, modifie_par)
+  values (old.id, to_jsonb(old), to_jsonb(new), auth.uid());
+  return new;
+end;
+$$;
+
+drop trigger if exists on_pointage_updated on public.pointages;
+create trigger on_pointage_updated
+  after update on public.pointages
+  for each row execute function public.log_pointage_correction();
 
 -- ============================================================================
 -- ROW LEVEL SECURITY
@@ -114,6 +178,7 @@ alter table public.profiles enable row level security;
 alter table public.chantiers enable row level security;
 alter table public.chantier_assignments enable row level security;
 alter table public.pointages enable row level security;
+alter table public.corrections_audit enable row level security;
 
 -- PROFILES
 create policy "profiles: lecture de son propre profil" on public.profiles
@@ -146,20 +211,31 @@ create policy "assignations: admin supprime" on public.chantier_assignments
   for delete using (public.is_admin());
 
 -- POINTAGES
+-- Lecture : l'ouvrier voit uniquement les siens, l'admin voit tout.
 create policy "pointages: ouvrier lit les siens" on public.pointages
   for select using (ouvrier_id = auth.uid() or public.is_admin());
-create policy "pointages: ouvrier check-in pour lui-meme" on public.pointages
+-- Création : un ouvrier ne peut créer un pointage que pour lui-même.
+create policy "pointages: ouvrier cree pour lui-meme" on public.pointages
   for insert with check (ouvrier_id = auth.uid());
-create policy "pointages: ouvrier check-out le sien" on public.pointages
-  for update using (ouvrier_id = auth.uid() or public.is_admin());
+-- Modification : réservée à l'admin. Un ouvrier ne peut PAS modifier un
+-- pointage existant, même le sien (anti-fraude, voir corrections_audit).
+create policy "pointages: admin modifie" on public.pointages
+  for update using (public.is_admin());
+-- Aucune policy DELETE : personne ne peut supprimer un pointage via l'API.
+
+-- CORRECTIONS_AUDIT
+create policy "audit: admin lit tout" on public.corrections_audit
+  for select using (public.is_admin());
+-- Pas de policy insert/update/delete : seul le trigger (security definer)
+-- peut écrire dans cette table.
 
 -- ============================================================================
--- DONNÉES DE DÉPART (optionnel — commente/adapte selon besoin)
+-- DONNÉES DE DÉPART (optionnel — décommente et adapte selon besoin)
 -- ============================================================================
--- insert into public.chantiers (nom, adresse) values
---   ('Hagebeuk 22', 'Hagebeuk 22, Merchtem'),
---   ('Londerzeel', 'Rozenstraat 22, Londerzeel'),
---   ('Stockel église', 'Stockel, Woluwe-Saint-Pierre'),
---   ('Overnelleweg', 'Overnelleweg, Ternat'),
---   ('Witteramsdal 93', 'Witteramsdal 93, Asse'),
---   ('Rosedale', 'Rosedale');
+-- insert into public.chantiers (nom, adresse, client) values
+--   ('Hagebeuk 22', 'Hagebeuk 22, Merchtem', null),
+--   ('Londerzeel', 'Rozenstraat 22, Londerzeel', null),
+--   ('Stockel église', 'Stockel, Woluwe-Saint-Pierre', null),
+--   ('Overnelleweg', 'Overnelleweg, Ternat', null),
+--   ('Witteramsdal 93', 'Witteramsdal 93, Asse', null),
+--   ('Rosedale', 'Rosedale', null);
