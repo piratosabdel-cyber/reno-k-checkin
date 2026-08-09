@@ -6,9 +6,13 @@ const emptyForm = {
   id: null as string | null,
   nom: '',
   adresse: '',
+  client: '',
   latitude: '',
   longitude: '',
   rayon_metres: '200',
+  mode_hors_zone: 'justifier' as 'justifier' | 'bloquer',
+  date_debut: '',
+  date_fin: '',
 }
 
 export default function AdminChantiersPage() {
@@ -48,9 +52,13 @@ export default function AdminChantiersPage() {
         id: c.id,
         nom: c.nom,
         adresse: c.adresse,
+        client: c.client ?? '',
         latitude: c.latitude?.toString() ?? '',
         longitude: c.longitude?.toString() ?? '',
         rayon_metres: c.rayon_metres.toString(),
+        mode_hors_zone: c.mode_hors_zone,
+        date_debut: c.date_debut ?? '',
+        date_fin: c.date_fin ?? '',
       })
     } else {
       setForm(emptyForm)
@@ -65,9 +73,13 @@ export default function AdminChantiersPage() {
     const payload = {
       nom: form.nom,
       adresse: form.adresse,
+      client: form.client || null,
       latitude: form.latitude ? Number(form.latitude) : null,
       longitude: form.longitude ? Number(form.longitude) : null,
       rayon_metres: Number(form.rayon_metres) || 200,
+      mode_hors_zone: form.mode_hors_zone,
+      date_debut: form.date_debut || null,
+      date_fin: form.date_fin || null,
     }
 
     if (form.id) {
@@ -165,6 +177,48 @@ export default function AdminChantiersPage() {
             <input
               value={form.rayon_metres}
               onChange={(e) => setForm({ ...form, rayon_metres: e.target.value })}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">Client (optionnel)</label>
+            <input
+              value={form.client}
+              onChange={(e) => setForm({ ...form, client: e.target.value })}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2"
+              placeholder="ex. Famille Janssens"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">
+              Si un ouvrier pointe hors zone
+            </label>
+            <select
+              value={form.mode_hors_zone}
+              onChange={(e) =>
+                setForm({ ...form, mode_hors_zone: e.target.value as 'justifier' | 'bloquer' })
+              }
+              className="w-full rounded-lg border border-slate-300 px-3 py-2"
+            >
+              <option value="justifier">Autoriser avec justification</option>
+              <option value="bloquer">Bloquer le pointage</option>
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">Date de début (optionnel)</label>
+            <input
+              type="date"
+              value={form.date_debut}
+              onChange={(e) => setForm({ ...form, date_debut: e.target.value })}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">Date de fin (optionnel)</label>
+            <input
+              type="date"
+              value={form.date_fin}
+              onChange={(e) => setForm({ ...form, date_fin: e.target.value })}
               className="w-full rounded-lg border border-slate-300 px-3 py-2"
             />
           </div>

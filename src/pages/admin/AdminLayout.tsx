@@ -24,6 +24,9 @@ export default function AdminLayout() {
             <NavLink to="/admin/ouvriers" className={linkClass}>
               Ouvriers
             </NavLink>
+            <NavLink to="/admin/heures" className={linkClass}>
+              Heures
+            </NavLink>
           </nav>
         </div>
         <div className="flex items-center gap-4">

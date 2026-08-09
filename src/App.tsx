@@ -7,6 +7,7 @@ import AdminLayout from './pages/admin/AdminLayout'
 import AdminDashboardPage from './pages/admin/AdminDashboardPage'
 import AdminChantiersPage from './pages/admin/AdminChantiersPage'
 import AdminOuvriersPage from './pages/admin/AdminOuvriersPage'
+import AdminHeuresPage from './pages/admin/AdminHeuresPage'
 
 export default function App() {
   return (
@@ -35,6 +36,7 @@ export default function App() {
             <Route index element={<AdminDashboardPage />} />
             <Route path="chantiers" element={<AdminChantiersPage />} />
             <Route path="ouvriers" element={<AdminOuvriersPage />} />
+            <Route path="heures" element={<AdminHeuresPage />} />
           </Route>
         </Routes>
       </AuthProvider>

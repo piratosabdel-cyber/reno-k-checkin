@@ -1,7 +1,14 @@
 import { Fragment, useEffect, useState, type FormEvent } from 'react'
 import { supabase } from '../../lib/supabase'
 import { adminAuthClient, generatePassword } from '../../lib/adminAuthClient'
-import type { Profile, PointageWithRelations } from '../../types/database'
+import type { Profile, PointageWithRelations, TypePointage } from '../../types/database'
+
+const LABELS_TYPE: Record<TypePointage, string> = {
+  arrivee: 'Arrivée',
+  pause_debut: 'Début de pause',
+  pause_fin: 'Fin de pause',
+  depart: 'Départ',
+}
 
 export default function AdminOuvriersPage() {
   const [ouvriers, setOuvriers] = useState<Profile[]>([])
@@ -74,7 +81,7 @@ export default function AdminOuvriersPage() {
       .from('pointages')
       .select('*, chantier:chantiers(id, nom)')
       .eq('ouvrier_id', o.id)
-      .order('check_in_at', { ascending: false })
+      .order('heure_appareil', { ascending: false })
       .limit(10)
     setHistorique((data as unknown as PointageWithRelations[]) ?? [])
   }
@@ -215,11 +222,9 @@ export default function AdminOuvriersPage() {
                           <ul className="space-y-1">
                             {historique.map((p) => (
                               <li key={p.id} className="text-slate-600">
-                                {p.chantier.nom} —{' '}
-                                {new Date(p.check_in_at).toLocaleString('fr-BE')} →{' '}
-                                {p.check_out_at
-                                  ? new Date(p.check_out_at).toLocaleString('fr-BE')
-                                  : 'en cours'}
+                                {p.chantier.nom} — {LABELS_TYPE[p.type]} —{' '}
+                                {new Date(p.heure_appareil).toLocaleString('fr-BE')}
+                                {p.hors_zone && <span className="ml-2 text-amber-600">(hors zone)</span>}
                               </li>
                             ))}
                           </ul>

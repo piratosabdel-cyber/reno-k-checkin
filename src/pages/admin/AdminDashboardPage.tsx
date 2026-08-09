@@ -1,6 +1,14 @@
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '../../lib/supabase'
-import type { PointageWithRelations, Profile, Chantier } from '../../types/database'
+import PointagesMap from '../../components/PointagesMap'
+import type { PointageWithRelations, Profile, Chantier, TypePointage } from '../../types/database'
+
+const LABELS: Record<TypePointage, string> = {
+  arrivee: 'Arrivée',
+  pause_debut: 'Début de pause',
+  pause_fin: 'Fin de pause',
+  depart: 'Départ',
+}
 
 function startOfToday() {
   const d = new Date()
@@ -8,23 +16,22 @@ function startOfToday() {
   return d.toISOString()
 }
 
-function fmtHeure(iso: string | null) {
-  if (!iso) return '—'
+function fmtHeure(iso: string) {
   return new Date(iso).toLocaleTimeString('fr-BE', { hour: '2-digit', minute: '2-digit' })
+}
+
+function statutPresence(dernierType: TypePointage): { label: string; classe: string } {
+  if (dernierType === 'arrivee' || dernierType === 'pause_fin')
+    return { label: 'Présent', classe: 'bg-emerald-100 text-emerald-700' }
+  if (dernierType === 'pause_debut') return { label: 'En pause', classe: 'bg-amber-100 text-amber-700' }
+  return { label: 'Parti', classe: 'bg-slate-100 text-slate-500' }
 }
 
 export default function AdminDashboardPage() {
   const [pointages, setPointages] = useState<PointageWithRelations[]>([])
+  const [chantiers, setChantiers] = useState<Chantier[]>([])
   const [manquants, setManquants] = useState<{ ouvrier: Profile; chantier: Chantier }[]>([])
   const [loading, setLoading] = useState(true)
-
-  const [exportFrom, setExportFrom] = useState(() => {
-    const d = new Date()
-    d.setDate(d.getDate() - 7)
-    return d.toISOString().slice(0, 10)
-  })
-  const [exportTo, setExportTo] = useState(() => new Date().toISOString().slice(0, 10))
-  const [exporting, setExporting] = useState(false)
 
   const loadToday = useCallback(async () => {
     setLoading(true)
@@ -32,21 +39,23 @@ export default function AdminDashboardPage() {
     const { data: todayPointages } = await supabase
       .from('pointages')
       .select('*, ouvrier:profiles(id, full_name), chantier:chantiers(id, nom)')
-      .gte('check_in_at', startOfToday())
-      .order('check_in_at', { ascending: false })
+      .gte('heure_appareil', startOfToday())
+      .order('heure_appareil', { ascending: false })
 
-    setPointages((todayPointages as unknown as PointageWithRelations[]) ?? [])
+    const rows = (todayPointages as unknown as PointageWithRelations[]) ?? []
+    setPointages(rows)
 
-    const [{ data: assignments }] = await Promise.all([
+    const [{ data: assignments }, { data: chantiersActifs }] = await Promise.all([
       supabase
         .from('chantier_assignments')
         .select('ouvrier:profiles(*), chantier:chantiers!inner(*)')
         .eq('chantier.statut', 'actif'),
+      supabase.from('chantiers').select('*').eq('statut', 'actif'),
     ])
 
-    const pointedOuvrierIds = new Set(
-      (todayPointages ?? []).map((p) => (p as unknown as PointageWithRelations).ouvrier_id)
-    )
+    setChantiers((chantiersActifs as Chantier[]) ?? [])
+
+    const pointedOuvrierIds = new Set(rows.map((p) => p.ouvrier_id))
 
     const missing = (assignments ?? [])
       .map((a) => ({
@@ -74,79 +83,84 @@ export default function AdminDashboardPage() {
     }
   }, [loadToday])
 
-  async function handleExport() {
-    setExporting(true)
-
-    const { data } = await supabase
-      .from('pointages')
-      .select('*, ouvrier:profiles(id, full_name), chantier:chantiers(id, nom)')
-      .gte('check_in_at', `${exportFrom}T00:00:00`)
-      .lte('check_in_at', `${exportTo}T23:59:59`)
-      .order('check_in_at')
-
-    const rows = (data as unknown as PointageWithRelations[]) ?? []
-
-    const header = ['Ouvrier', 'Chantier', 'Arrivée', 'Départ', 'Heures']
-    const lines = rows.map((p) => {
-      const heures = p.check_out_at
-        ? (
-            (new Date(p.check_out_at).getTime() - new Date(p.check_in_at).getTime()) /
-            3600000
-          ).toFixed(2)
-        : ''
-      return [
-        p.ouvrier.full_name,
-        p.chantier.nom,
-        new Date(p.check_in_at).toLocaleString('fr-BE'),
-        p.check_out_at ? new Date(p.check_out_at).toLocaleString('fr-BE') : '',
-        heures,
-      ]
+  // Statut de présence "en direct" par ouvrier : basé sur son dernier évènement du jour.
+  const presenceParOuvrier = new Map<string, { ouvrier: Profile; chantier: Chantier; dernierType: TypePointage }>()
+  for (const p of [...pointages].reverse()) {
+    presenceParOuvrier.set(p.ouvrier_id, {
+      ouvrier: p.ouvrier as Profile,
+      chantier: p.chantier as Chantier,
+      dernierType: p.type,
     })
-
-    const csv = [header, ...lines]
-      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(';'))
-      .join('\n')
-
-    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `pointages_${exportFrom}_${exportTo}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
-
-    setExporting(false)
   }
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="mb-4 text-2xl font-bold text-slate-900">Vue du jour</h1>
+    <div>
+      <h1 className="mb-4 text-2xl font-bold text-slate-900">Vue du jour</h1>
 
-        {manquants.length > 0 && (
-          <div className="mb-4 rounded-xl bg-amber-50 p-4 text-amber-900">
-            <p className="mb-1 font-semibold">⚠ Pas encore pointé aujourd'hui :</p>
-            <ul className="list-inside list-disc text-sm">
-              {manquants.map((m, i) => (
-                <li key={i}>
-                  {m.ouvrier.full_name} — prévu sur {m.chantier.nom}
-                </li>
-              ))}
-            </ul>
+      {manquants.length > 0 && (
+        <div className="mb-4 rounded-xl bg-amber-50 p-4 text-amber-900">
+          <p className="mb-1 font-semibold">⚠ Pas encore pointé aujourd'hui :</p>
+          <ul className="list-inside list-disc text-sm">
+            {manquants.map((m, i) => (
+              <li key={i}>
+                {m.ouvrier.full_name} — prévu sur {m.chantier.nom}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {loading ? (
+        <p className="text-slate-400">Chargement...</p>
+      ) : (
+        <>
+          <div className="mb-6">
+            <PointagesMap pointages={pointages} chantiers={chantiers} />
           </div>
-        )}
 
-        {loading ? (
-          <p className="text-slate-400">Chargement...</p>
-        ) : (
+          <div className="mb-6 overflow-hidden rounded-xl bg-white shadow-sm">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-slate-50 text-slate-500">
+                <tr>
+                  <th className="px-4 py-3">Ouvrier</th>
+                  <th className="px-4 py-3">Chantier</th>
+                  <th className="px-4 py-3">Statut actuel</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...presenceParOuvrier.values()].map((p) => {
+                  const s = statutPresence(p.dernierType)
+                  return (
+                    <tr key={p.ouvrier.id} className="border-t border-slate-100">
+                      <td className="px-4 py-3 font-medium text-slate-900">{p.ouvrier.full_name}</td>
+                      <td className="px-4 py-3 text-slate-600">{p.chantier.nom}</td>
+                      <td className="px-4 py-3">
+                        <span className={`rounded-full px-2 py-1 text-xs font-medium ${s.classe}`}>
+                          {s.label}
+                        </span>
+                      </td>
+                    </tr>
+                  )
+                })}
+                {presenceParOuvrier.size === 0 && (
+                  <tr>
+                    <td colSpan={3} className="px-4 py-6 text-center text-slate-400">
+                      Personne n'a pointé aujourd'hui.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
           <div className="overflow-hidden rounded-xl bg-white shadow-sm">
             <table className="w-full text-left text-sm">
               <thead className="bg-slate-50 text-slate-500">
                 <tr>
                   <th className="px-4 py-3">Ouvrier</th>
                   <th className="px-4 py-3">Chantier</th>
-                  <th className="px-4 py-3">Arrivée</th>
-                  <th className="px-4 py-3">Départ</th>
+                  <th className="px-4 py-3">Type</th>
+                  <th className="px-4 py-3">Heure</th>
                   <th className="px-4 py-3">Statut</th>
                 </tr>
               </thead>
@@ -155,17 +169,19 @@ export default function AdminDashboardPage() {
                   <tr key={p.id} className="border-t border-slate-100">
                     <td className="px-4 py-3 font-medium text-slate-900">{p.ouvrier.full_name}</td>
                     <td className="px-4 py-3 text-slate-600">{p.chantier.nom}</td>
-                    <td className="px-4 py-3">{fmtHeure(p.check_in_at)}</td>
-                    <td className="px-4 py-3">{fmtHeure(p.check_out_at)}</td>
+                    <td className="px-4 py-3">{LABELS[p.type]}</td>
+                    <td className="px-4 py-3">{fmtHeure(p.heure_appareil)}</td>
                     <td className="px-4 py-3">
                       <span
                         className={`rounded-full px-2 py-1 text-xs font-medium ${
-                          p.check_out_at
-                            ? 'bg-slate-100 text-slate-500'
-                            : 'bg-emerald-100 text-emerald-700'
+                          p.statut === 'hors_zone'
+                            ? 'bg-amber-100 text-amber-700'
+                            : p.statut === 'corrige'
+                              ? 'bg-blue-100 text-blue-700'
+                              : 'bg-emerald-100 text-emerald-700'
                         }`}
                       >
-                        {p.check_out_at ? 'Terminé' : 'En cours'}
+                        {p.statut === 'accepte' ? 'Accepté' : p.statut === 'hors_zone' ? 'Hors zone' : p.statut}
                       </span>
                     </td>
                   </tr>
@@ -180,39 +196,8 @@ export default function AdminDashboardPage() {
               </tbody>
             </table>
           </div>
-        )}
-      </div>
-
-      <div className="rounded-xl bg-white p-6 shadow-sm">
-        <h2 className="mb-4 text-lg font-semibold text-slate-900">Export des heures</h2>
-        <div className="flex flex-wrap items-end gap-4">
-          <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Du</label>
-            <input
-              type="date"
-              value={exportFrom}
-              onChange={(e) => setExportFrom(e.target.value)}
-              className="rounded-lg border border-slate-300 px-3 py-2"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Au</label>
-            <input
-              type="date"
-              value={exportTo}
-              onChange={(e) => setExportTo(e.target.value)}
-              className="rounded-lg border border-slate-300 px-3 py-2"
-            />
-          </div>
-          <button
-            onClick={handleExport}
-            disabled={exporting}
-            className="rounded-lg bg-orange-600 px-4 py-2 font-medium text-white hover:bg-orange-700 disabled:opacity-50"
-          >
-            {exporting ? 'Export...' : 'Exporter en CSV'}
-          </button>
-        </div>
-      </div>
+        </>
+      )}
     </div>
   )
 }
