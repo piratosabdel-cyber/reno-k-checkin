@@ -11,7 +11,15 @@
       "Bash(rm -f .env.local dist -r)",
       "Bash(rm -rf dist)",
       "Bash(npm run *)",
-      "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\(p.dependencies['react-leaflet'], p.dependencies['leaflet'], p.dependencies['react']\\)\")"
+      "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\(p.dependencies['react-leaflet'], p.dependencies['leaflet'], p.dependencies['react']\\)\")",
+      "Skill(higgsfield-generate)",
+      "Skill(higgsfield-generate:*)",
+      "Bash(higgsfield account *)",
+      "Bash(higgsfield workspace *)",
+      "Bash(higgsfield auth *)",
+      "Bash(higgsfield generate *)",
+      "Bash(curl -sL \"https://d8j0ntlcm91z4.cloudfront.net/user_3F8CS1ddfYILb4NyI0HXtXgKspP/hf_20260809_114830_2fd74ee3-de82-44b7-bb8e-0acc84fa7c4a.png\" -o \"/c/Users/AbdelReno-K/check in reno k/scratch/icon-preview.png\")",
+      "Bash(magick -version)"
     ]
   }
 }
