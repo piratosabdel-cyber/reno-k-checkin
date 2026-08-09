@@ -45,7 +45,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // Vérifie qui appelle, avec la clé anon (pas de privilège particulier).
-  const supabaseAsCaller = createClient(supabaseUrl, anonKey)
+  // Le header Authorization doit être transmis explicitement pour que les
+  // policies RLS (ex. is_admin()) voient le bon auth.uid() sur les requêtes
+  // suivantes — .auth.getUser(token) seul ne suffit pas pour ça.
+  const supabaseAsCaller = createClient(supabaseUrl, anonKey, {
+    global: { headers: { Authorization: `Bearer ${token}` } },
+  })
   const {
     data: { user: caller },
   } = await supabaseAsCaller.auth.getUser(token)
