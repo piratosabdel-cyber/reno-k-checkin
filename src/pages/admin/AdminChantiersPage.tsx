@@ -237,12 +237,13 @@ export default function AdminChantiersPage() {
         <p className="text-slate-400">Chargement...</p>
       ) : (
         <div className="overflow-hidden rounded-xl bg-white shadow-sm">
+        <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-50 text-slate-500">
               <tr>
-                <th className="px-4 py-3">Chantier</th>
-                <th className="px-4 py-3">Adresse</th>
-                <th className="px-4 py-3">Statut</th>
+                <th className="px-4 py-3 whitespace-nowrap">Chantier</th>
+                <th className="px-4 py-3 whitespace-nowrap">Adresse</th>
+                <th className="px-4 py-3 whitespace-nowrap">Statut</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -250,9 +251,9 @@ export default function AdminChantiersPage() {
               {chantiers.map((c) => (
                 <Fragment key={c.id}>
                   <tr className="border-t border-slate-100">
-                    <td className="px-4 py-3 font-medium text-slate-900">{c.nom}</td>
-                    <td className="px-4 py-3 text-slate-500">{c.adresse}</td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 whitespace-nowrap font-medium text-slate-900">{c.nom}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-slate-500">{c.adresse}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">
                       <span
                         className={`rounded-full px-2 py-1 text-xs font-medium ${
                           c.statut === 'actif'
@@ -263,7 +264,7 @@ export default function AdminChantiersPage() {
                         {c.statut === 'actif' ? 'Actif' : 'Terminé'}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="whitespace-nowrap px-4 py-3 text-right">
                       <button
                         onClick={() => setExpandedId(expandedId === c.id ? null : c.id)}
                         className="mr-3 text-orange-600 hover:underline"
@@ -323,6 +324,7 @@ export default function AdminChantiersPage() {
               )}
             </tbody>
           </table>
+        </div>
         </div>
       )}
     </div>

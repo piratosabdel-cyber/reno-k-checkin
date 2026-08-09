@@ -179,11 +179,12 @@ export default function AdminOuvriersPage() {
         <p className="text-slate-400">Chargement...</p>
       ) : (
         <div className="overflow-hidden rounded-xl bg-white shadow-sm">
+        <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-50 text-slate-500">
               <tr>
-                <th className="px-4 py-3">Nom</th>
-                <th className="px-4 py-3">Statut</th>
+                <th className="px-4 py-3 whitespace-nowrap">Nom</th>
+                <th className="px-4 py-3 whitespace-nowrap">Statut</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -191,8 +192,8 @@ export default function AdminOuvriersPage() {
               {ouvriers.map((o) => (
                 <Fragment key={o.id}>
                   <tr className="border-t border-slate-100">
-                    <td className="px-4 py-3 font-medium text-slate-900">{o.full_name}</td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 whitespace-nowrap font-medium text-slate-900">{o.full_name}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">
                       <span
                         className={`rounded-full px-2 py-1 text-xs font-medium ${
                           o.active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
@@ -201,7 +202,7 @@ export default function AdminOuvriersPage() {
                         {o.active ? 'Actif' : 'Archivé'}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="whitespace-nowrap px-4 py-3 text-right">
                       <button
                         onClick={() => toggleHistorique(o)}
                         className="mr-3 text-orange-600 hover:underline"
@@ -243,6 +244,7 @@ export default function AdminOuvriersPage() {
               )}
             </tbody>
           </table>
+        </div>
         </div>
       )}
     </div>

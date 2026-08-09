@@ -119,82 +119,86 @@ export default function AdminDashboardPage() {
           </div>
 
           <div className="mb-6 overflow-hidden rounded-xl bg-white shadow-sm">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 text-slate-500">
-                <tr>
-                  <th className="px-4 py-3">Ouvrier</th>
-                  <th className="px-4 py-3">Chantier</th>
-                  <th className="px-4 py-3">Statut actuel</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[...presenceParOuvrier.values()].map((p) => {
-                  const s = statutPresence(p.dernierType)
-                  return (
-                    <tr key={p.ouvrier.id} className="border-t border-slate-100">
-                      <td className="px-4 py-3 font-medium text-slate-900">{p.ouvrier.full_name}</td>
-                      <td className="px-4 py-3 text-slate-600">{p.chantier.nom}</td>
-                      <td className="px-4 py-3">
-                        <span className={`rounded-full px-2 py-1 text-xs font-medium ${s.classe}`}>
-                          {s.label}
-                        </span>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-slate-50 text-slate-500">
+                  <tr>
+                    <th className="px-4 py-3 whitespace-nowrap">Ouvrier</th>
+                    <th className="px-4 py-3 whitespace-nowrap">Chantier</th>
+                    <th className="px-4 py-3 whitespace-nowrap">Statut actuel</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...presenceParOuvrier.values()].map((p) => {
+                    const s = statutPresence(p.dernierType)
+                    return (
+                      <tr key={p.ouvrier.id} className="border-t border-slate-100">
+                        <td className="px-4 py-3 whitespace-nowrap font-medium text-slate-900">{p.ouvrier.full_name}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-slate-600">{p.chantier.nom}</td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <span className={`rounded-full px-2 py-1 text-xs font-medium ${s.classe}`}>
+                            {s.label}
+                          </span>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                  {presenceParOuvrier.size === 0 && (
+                    <tr>
+                      <td colSpan={3} className="px-4 py-6 text-center text-slate-400">
+                        Personne n'a pointé aujourd'hui.
                       </td>
                     </tr>
-                  )
-                })}
-                {presenceParOuvrier.size === 0 && (
-                  <tr>
-                    <td colSpan={3} className="px-4 py-6 text-center text-slate-400">
-                      Personne n'a pointé aujourd'hui.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           <div className="overflow-hidden rounded-xl bg-white shadow-sm">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 text-slate-500">
-                <tr>
-                  <th className="px-4 py-3">Ouvrier</th>
-                  <th className="px-4 py-3">Chantier</th>
-                  <th className="px-4 py-3">Type</th>
-                  <th className="px-4 py-3">Heure</th>
-                  <th className="px-4 py-3">Statut</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pointages.map((p) => (
-                  <tr key={p.id} className="border-t border-slate-100">
-                    <td className="px-4 py-3 font-medium text-slate-900">{p.ouvrier.full_name}</td>
-                    <td className="px-4 py-3 text-slate-600">{p.chantier.nom}</td>
-                    <td className="px-4 py-3">{LABELS[p.type]}</td>
-                    <td className="px-4 py-3">{fmtHeure(p.heure_appareil)}</td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`rounded-full px-2 py-1 text-xs font-medium ${
-                          p.statut === 'hors_zone'
-                            ? 'bg-amber-100 text-amber-700'
-                            : p.statut === 'corrige'
-                              ? 'bg-blue-100 text-blue-700'
-                              : 'bg-emerald-100 text-emerald-700'
-                        }`}
-                      >
-                        {p.statut === 'accepte' ? 'Accepté' : p.statut === 'hors_zone' ? 'Hors zone' : p.statut}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-                {pointages.length === 0 && (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-slate-50 text-slate-500">
                   <tr>
-                    <td colSpan={5} className="px-4 py-6 text-center text-slate-400">
-                      Aucun pointage aujourd'hui.
-                    </td>
+                    <th className="px-4 py-3 whitespace-nowrap">Ouvrier</th>
+                    <th className="px-4 py-3 whitespace-nowrap">Chantier</th>
+                    <th className="px-4 py-3 whitespace-nowrap">Type</th>
+                    <th className="px-4 py-3 whitespace-nowrap">Heure</th>
+                    <th className="px-4 py-3 whitespace-nowrap">Statut</th>
                   </tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {pointages.map((p) => (
+                    <tr key={p.id} className="border-t border-slate-100">
+                      <td className="px-4 py-3 whitespace-nowrap font-medium text-slate-900">{p.ouvrier.full_name}</td>
+                      <td className="px-4 py-3 whitespace-nowrap text-slate-600">{p.chantier.nom}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">{LABELS[p.type]}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">{fmtHeure(p.heure_appareil)}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span
+                          className={`rounded-full px-2 py-1 text-xs font-medium ${
+                            p.statut === 'hors_zone'
+                              ? 'bg-amber-100 text-amber-700'
+                              : p.statut === 'corrige'
+                                ? 'bg-blue-100 text-blue-700'
+                                : 'bg-emerald-100 text-emerald-700'
+                          }`}
+                        >
+                          {p.statut === 'accepte' ? 'Accepté' : p.statut === 'hors_zone' ? 'Hors zone' : p.statut}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                  {pointages.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="px-4 py-6 text-center text-slate-400">
+                        Aucun pointage aujourd'hui.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </>
       )}

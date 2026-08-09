@@ -207,25 +207,26 @@ export default function AdminHeuresPage() {
         ) : (
           <>
             <div className="mb-6 overflow-hidden rounded-xl bg-white shadow-sm">
+            <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead className="bg-slate-50 text-slate-500">
                   <tr>
-                    <th className="px-4 py-3">Ouvrier</th>
-                    <th className="px-4 py-3">Heures chantiers</th>
-                    <th className="px-4 py-3">Pause midi</th>
-                    <th className="px-4 py-3">Déplacement</th>
-                    <th className="px-4 py-3">Total payé</th>
+                    <th className="px-4 py-3 whitespace-nowrap">Ouvrier</th>
+                    <th className="px-4 py-3 whitespace-nowrap">Heures chantiers</th>
+                    <th className="px-4 py-3 whitespace-nowrap">Pause midi</th>
+                    <th className="px-4 py-3 whitespace-nowrap">Déplacement</th>
+                    <th className="px-4 py-3 whitespace-nowrap">Total payé</th>
                     <th className="px-4 py-3" />
                   </tr>
                 </thead>
                 <tbody>
                   {resumeOuvriers.map((r) => (
                     <tr key={r.ouvrierId} className="border-t border-slate-100">
-                      <td className="px-4 py-3 font-medium text-slate-900">{r.nom}</td>
-                      <td className="px-4 py-3 text-slate-700">{formatHeures(r.totalTravailBrutMs)}</td>
-                      <td className="px-4 py-3 text-slate-500">-{formatHeures(r.totalPauseMs)}</td>
-                      <td className="px-4 py-3 text-slate-500">{formatHeures(r.totalDeplacementMs)}</td>
-                      <td className="px-4 py-3 font-semibold text-slate-900">
+                      <td className="px-4 py-3 whitespace-nowrap font-medium text-slate-900">{r.nom}</td>
+                      <td className="px-4 py-3 whitespace-nowrap text-slate-700">{formatHeures(r.totalTravailBrutMs)}</td>
+                      <td className="px-4 py-3 whitespace-nowrap text-slate-500">-{formatHeures(r.totalPauseMs)}</td>
+                      <td className="px-4 py-3 whitespace-nowrap text-slate-500">{formatHeures(r.totalDeplacementMs)}</td>
+                      <td className="px-4 py-3 whitespace-nowrap font-semibold text-slate-900">
                         {formatHeures(r.totalTravailBrutMs - r.totalPauseMs + r.totalDeplacementMs)}
                       </td>
                       <td className="px-4 py-3 text-right whitespace-nowrap">
@@ -258,24 +259,26 @@ export default function AdminHeuresPage() {
                 </tbody>
               </table>
             </div>
+            </div>
 
             <div className="overflow-hidden rounded-xl bg-white shadow-sm">
+            <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead className="bg-slate-50 text-slate-500">
                   <tr>
-                    <th className="px-4 py-3">Chantier</th>
-                    <th className="px-4 py-3">Heures travaillées</th>
-                    <th className="px-4 py-3">Déplacement</th>
-                    <th className="px-4 py-3">Total</th>
+                    <th className="px-4 py-3 whitespace-nowrap">Chantier</th>
+                    <th className="px-4 py-3 whitespace-nowrap">Heures travaillées</th>
+                    <th className="px-4 py-3 whitespace-nowrap">Déplacement</th>
+                    <th className="px-4 py-3 whitespace-nowrap">Total</th>
                   </tr>
                 </thead>
                 <tbody>
                   {[...parChantier.values()].map((c) => (
                     <tr key={c.nom} className="border-t border-slate-100">
-                      <td className="px-4 py-3 font-medium text-slate-900">{c.nom}</td>
-                      <td className="px-4 py-3 text-slate-700">{formatHeures(c.totalTravailMs)}</td>
-                      <td className="px-4 py-3 text-slate-500">{formatHeures(c.totalDeplacementMs)}</td>
-                      <td className="px-4 py-3 font-semibold text-slate-900">
+                      <td className="px-4 py-3 whitespace-nowrap font-medium text-slate-900">{c.nom}</td>
+                      <td className="px-4 py-3 whitespace-nowrap text-slate-700">{formatHeures(c.totalTravailMs)}</td>
+                      <td className="px-4 py-3 whitespace-nowrap text-slate-500">{formatHeures(c.totalDeplacementMs)}</td>
+                      <td className="px-4 py-3 whitespace-nowrap font-semibold text-slate-900">
                         {formatHeures(c.totalTravailMs + c.totalDeplacementMs)}
                       </td>
                     </tr>
@@ -289,6 +292,7 @@ export default function AdminHeuresPage() {
                   )}
                 </tbody>
               </table>
+            </div>
               <p className="border-t border-slate-100 px-4 py-2 text-xs text-slate-400">
                 Ce tableau ne déduit pas la pause de midi (elle est par ouvrier/jour, pas par chantier) — voir le
                 total réel payé par ouvrier ci-dessus.
