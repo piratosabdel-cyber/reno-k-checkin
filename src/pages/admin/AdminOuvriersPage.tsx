@@ -72,24 +72,36 @@ export default function AdminOuvriersPage() {
     setResetError(null)
     setResettingId(o.id)
 
-    const { data: sessionData } = await supabase.auth.getSession()
-    const token = sessionData.session?.access_token
+    try {
+      const { data: sessionData } = await supabase.auth.getSession()
+      const token = sessionData.session?.access_token
 
-    const res = await fetch('/api/reset-password', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ ouvrierId: o.id }),
-    })
-    const result = await res.json()
+      const res = await fetch('/api/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ ouvrierId: o.id }),
+      })
 
-    setResettingId(null)
+      const texte = await res.text()
+      let result: { error?: string; password?: string } = {}
+      try {
+        result = texte ? JSON.parse(texte) : {}
+      } catch {
+        setResetError(`Réponse inattendue du serveur (${res.status}) : ${texte.slice(0, 200)}`)
+        return
+      }
 
-    if (!res.ok) {
-      setResetError(result.error ?? 'Erreur lors de la réinitialisation.')
-      return
+      if (!res.ok) {
+        setResetError(result.error ?? `Erreur lors de la réinitialisation (${res.status}).`)
+        return
+      }
+
+      setCreatedCreds({ email: o.email ?? '(email non renseigné)', password: result.password ?? '' })
+    } catch (e) {
+      setResetError(e instanceof Error ? e.message : 'Erreur réseau lors de la réinitialisation.')
+    } finally {
+      setResettingId(null)
     }
-
-    setCreatedCreds({ email: o.email ?? '(email non renseigné)', password: result.password })
   }
 
   async function toggleActive(o: Profile) {
