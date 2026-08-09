@@ -77,7 +77,7 @@ export default function AdminOuvriersPage() {
       return
     }
     setResetError(null)
-    setResetPasswordValue(generatePassword())
+    setResetPasswordValue('')
     setResetFormId(o.id)
   }
 
@@ -304,7 +304,7 @@ export default function AdminOuvriersPage() {
                         onClick={() => ouvrirFormulaireReset(o)}
                         className="mr-3 text-orange-600 hover:underline"
                       >
-                        Nouveau mot de passe
+                        Réinitialiser le mot de passe
                       </button>
                       <button
                         onClick={() => toggleActive(o)}
@@ -320,10 +320,15 @@ export default function AdminOuvriersPage() {
                         <label className="mb-1 block text-sm font-medium text-slate-700">
                           Nouveau mot de passe pour {o.full_name}
                         </label>
+                        <p className="mb-2 text-xs text-amber-700">
+                          ⚠️ Ceci remplace le mot de passe actuel de l'ouvrier — son ancien code ne fonctionnera
+                          plus. Rien n'est modifié tant que tu n'as pas cliqué sur "Confirmer".
+                        </p>
                         <div className="flex flex-wrap gap-2">
                           <input
                             value={resetPasswordValue}
                             onChange={(e) => setResetPasswordValue(e.target.value)}
+                            placeholder="Clique sur Générer, ou tape un mot de passe"
                             className="w-full max-w-xs rounded-lg border border-slate-300 px-3 py-2 font-mono text-sm"
                           />
                           <button
