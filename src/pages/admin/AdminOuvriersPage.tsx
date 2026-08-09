@@ -26,6 +26,8 @@ export default function AdminOuvriersPage() {
   const [historique, setHistorique] = useState<PointageWithRelations[]>([])
   const [resettingId, setResettingId] = useState<string | null>(null)
   const [resetError, setResetError] = useState<string | null>(null)
+  const [resetFormId, setResetFormId] = useState<string | null>(null)
+  const [resetPasswordValue, setResetPasswordValue] = useState('')
 
   async function load() {
     setLoading(true)
@@ -68,7 +70,17 @@ export default function AdminOuvriersPage() {
     load()
   }
 
-  async function reinitialiserMotDePasse(o: Profile) {
+  function ouvrirFormulaireReset(o: Profile) {
+    if (resetFormId === o.id) {
+      setResetFormId(null)
+      return
+    }
+    setResetError(null)
+    setResetPasswordValue(generatePassword())
+    setResetFormId(o.id)
+  }
+
+  async function confirmerReset(o: Profile) {
     setResetError(null)
     setResettingId(o.id)
 
@@ -79,7 +91,7 @@ export default function AdminOuvriersPage() {
       const res = await fetch('/api/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ ouvrierId: o.id }),
+        body: JSON.stringify({ ouvrierId: o.id, password: resetPasswordValue }),
       })
 
       const texte = await res.text()
@@ -97,6 +109,7 @@ export default function AdminOuvriersPage() {
       }
 
       setCreatedCreds({ email: o.email ?? '(email non renseigné)', password: result.password ?? '' })
+      setResetFormId(null)
     } catch (e) {
       setResetError(e instanceof Error ? e.message : 'Erreur réseau lors de la réinitialisation.')
     } finally {
@@ -256,17 +269,57 @@ export default function AdminOuvriersPage() {
                         Historique
                       </button>
                       <button
-                        onClick={() => reinitialiserMotDePasse(o)}
-                        disabled={resettingId === o.id}
-                        className="mr-3 text-orange-600 hover:underline disabled:text-slate-300"
+                        onClick={() => ouvrirFormulaireReset(o)}
+                        className="mr-3 text-orange-600 hover:underline"
                       >
-                        {resettingId === o.id ? '...' : 'Nouveau mot de passe'}
+                        Nouveau mot de passe
                       </button>
                       <button onClick={() => toggleActive(o)} className="text-slate-500 hover:underline">
                         {o.active ? 'Archiver' : 'Réactiver'}
                       </button>
                     </td>
                   </tr>
+                  {resetFormId === o.id && (
+                    <tr className="border-t border-slate-100 bg-slate-50">
+                      <td colSpan={4} className="px-4 py-3">
+                        <label className="mb-1 block text-sm font-medium text-slate-700">
+                          Nouveau mot de passe pour {o.full_name}
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                          <input
+                            value={resetPasswordValue}
+                            onChange={(e) => setResetPasswordValue(e.target.value)}
+                            className="w-full max-w-xs rounded-lg border border-slate-300 px-3 py-2 font-mono text-sm"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setResetPasswordValue(generatePassword())}
+                            className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                          >
+                            Générer
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => confirmerReset(o)}
+                            disabled={resettingId === o.id || resetPasswordValue.length < 6}
+                            className="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+                          >
+                            {resettingId === o.id ? '...' : 'Confirmer'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setResetFormId(null)}
+                            className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-600"
+                          >
+                            Annuler
+                          </button>
+                        </div>
+                        {resetPasswordValue.length > 0 && resetPasswordValue.length < 6 && (
+                          <p className="mt-1 text-xs text-red-600">Minimum 6 caractères.</p>
+                        )}
+                      </td>
+                    </tr>
+                  )}
                   {expandedId === o.id && (
                     <tr className="border-t border-slate-100 bg-slate-50">
                       <td colSpan={4} className="px-4 py-3">

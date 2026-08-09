@@ -72,13 +72,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body
-  const ouvrierId = (body as { ouvrierId?: string })?.ouvrierId
+  const { ouvrierId, password: motDePasseSouhaite } = (body as {
+    ouvrierId?: string
+    password?: string
+  }) ?? {}
+
   if (!ouvrierId) {
     res.status(400).json({ error: 'ouvrierId manquant.' })
     return
   }
+  if (motDePasseSouhaite && motDePasseSouhaite.length < 6) {
+    res.status(400).json({ error: 'Le mot de passe doit faire au moins 6 caractères.' })
+    return
+  }
 
-  const nouveauMotDePasse = genererMotDePasse()
+  const nouveauMotDePasse = motDePasseSouhaite || genererMotDePasse()
 
   const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
