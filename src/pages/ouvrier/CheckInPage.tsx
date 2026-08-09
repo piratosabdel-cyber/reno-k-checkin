@@ -327,6 +327,24 @@ export default function CheckInPage() {
     )
   }
 
+  if (profile && !profile.active) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-slate-900 px-6 text-center text-white">
+        <p className="text-5xl">🔒</p>
+        <h1 className="text-xl font-bold">Accès bloqué</h1>
+        <p className="max-w-xs text-slate-400">
+          Ton compte a été désactivé. Contacte ton responsable pour plus d'informations.
+        </p>
+        <button
+          onClick={signOut}
+          className="mt-4 rounded-lg border border-slate-600 px-4 py-2 text-sm text-slate-300"
+        >
+          Déconnexion
+        </button>
+      </div>
+    )
+  }
+
   if (appActive === false) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-slate-900 px-6 text-center text-white">

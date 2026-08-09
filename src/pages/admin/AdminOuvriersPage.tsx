@@ -255,10 +255,10 @@ export default function AdminOuvriersPage() {
                     <td className="px-4 py-3 whitespace-nowrap">
                       <span
                         className={`rounded-full px-2 py-1 text-xs font-medium ${
-                          o.active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
+                          o.active ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
                         }`}
                       >
-                        {o.active ? 'Actif' : 'Archivé'}
+                        {o.active ? 'Actif' : 'Accès bloqué'}
                       </span>
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-right">
@@ -274,8 +274,11 @@ export default function AdminOuvriersPage() {
                       >
                         Nouveau mot de passe
                       </button>
-                      <button onClick={() => toggleActive(o)} className="text-slate-500 hover:underline">
-                        {o.active ? 'Archiver' : 'Réactiver'}
+                      <button
+                        onClick={() => toggleActive(o)}
+                        className={o.active ? 'text-red-600 hover:underline' : 'text-emerald-600 hover:underline'}
+                      >
+                        {o.active ? "Bloquer l'accès" : "Débloquer l'accès"}
                       </button>
                     </td>
                   </tr>
