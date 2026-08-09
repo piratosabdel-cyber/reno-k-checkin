@@ -28,6 +28,7 @@ export default function AdminOuvriersPage() {
   const [resetError, setResetError] = useState<string | null>(null)
   const [resetFormId, setResetFormId] = useState<string | null>(null)
   const [resetPasswordValue, setResetPasswordValue] = useState('')
+  const [filtreStatut, setFiltreStatut] = useState<'tous' | 'actif' | 'bloque'>('actif')
 
   async function load() {
     setLoading(true)
@@ -137,16 +138,47 @@ export default function AdminOuvriersPage() {
     setHistorique((data as unknown as PointageWithRelations[]) ?? [])
   }
 
+  const ouvriersFiltres = ouvriers.filter((o) => {
+    if (filtreStatut === 'actif') return o.active
+    if (filtreStatut === 'bloque') return !o.active
+    return true
+  })
+  const nbActifs = ouvriers.filter((o) => o.active).length
+  const nbBloques = ouvriers.length - nbActifs
+
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-slate-900">Ouvriers</h1>
-        <button
-          onClick={() => setShowForm((v) => !v)}
-          className="rounded-lg bg-orange-600 px-4 py-2 font-medium text-white hover:bg-orange-700"
-        >
-          {showForm ? 'Annuler' : '+ Ajouter un ouvrier'}
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex gap-1 rounded-lg bg-slate-100 p-1 text-sm">
+            {(
+              [
+                ['tous', `Tous (${ouvriers.length})`],
+                ['actif', `Actif (${nbActifs})`],
+                ['bloque', `Accès bloqué (${nbBloques})`],
+              ] as const
+            ).map(([valeur, libelle]) => (
+              <button
+                key={valeur}
+                onClick={() => setFiltreStatut(valeur)}
+                className={`rounded-md px-3 py-1.5 font-medium transition ${
+                  filtreStatut === valeur
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                {libelle}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => setShowForm((v) => !v)}
+            className="rounded-lg bg-orange-600 px-4 py-2 font-medium text-white hover:bg-orange-700"
+          >
+            {showForm ? 'Annuler' : '+ Ajouter un ouvrier'}
+          </button>
+        </div>
       </div>
 
       {createdCreds && (
@@ -245,7 +277,7 @@ export default function AdminOuvriersPage() {
               </tr>
             </thead>
             <tbody>
-              {ouvriers.map((o) => (
+              {ouvriersFiltres.map((o) => (
                 <Fragment key={o.id}>
                   <tr className="border-t border-slate-100">
                     <td className="px-4 py-3 whitespace-nowrap font-medium text-slate-900">{o.full_name}</td>
@@ -344,10 +376,10 @@ export default function AdminOuvriersPage() {
                   )}
                 </Fragment>
               ))}
-              {ouvriers.length === 0 && (
+              {ouvriersFiltres.length === 0 && (
                 <tr>
                   <td colSpan={4} className="px-4 py-6 text-center text-slate-400">
-                    Aucun ouvrier pour le moment.
+                    {ouvriers.length === 0 ? 'Aucun ouvrier pour le moment.' : 'Aucun ouvrier dans cette catégorie.'}
                   </td>
                 </tr>
               )}
