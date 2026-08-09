@@ -9,6 +9,7 @@ export interface Profile {
   full_name: string
   role: Role
   phone: string | null
+  email: string | null
   active: boolean
   created_at: string
 }

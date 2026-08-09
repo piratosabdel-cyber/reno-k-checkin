@@ -19,7 +19,9 @@
       "Bash(higgsfield auth *)",
       "Bash(higgsfield generate *)",
       "Bash(curl -sL \"https://d8j0ntlcm91z4.cloudfront.net/user_3F8CS1ddfYILb4NyI0HXtXgKspP/hf_20260809_114830_2fd74ee3-de82-44b7-bb8e-0acc84fa7c4a.png\" -o \"/c/Users/AbdelReno-K/check in reno k/scratch/icon-preview.png\")",
-      "Bash(magick -version)"
+      "Bash(magick -version)",
+      "Bash(npm audit *)",
+      "Bash(npm uninstall *)"
     ]
   }
 }

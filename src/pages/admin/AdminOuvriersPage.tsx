@@ -24,6 +24,8 @@ export default function AdminOuvriersPage() {
   )
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [historique, setHistorique] = useState<PointageWithRelations[]>([])
+  const [resettingId, setResettingId] = useState<string | null>(null)
+  const [resetError, setResetError] = useState<string | null>(null)
 
   async function load() {
     setLoading(true)
@@ -66,6 +68,30 @@ export default function AdminOuvriersPage() {
     load()
   }
 
+  async function reinitialiserMotDePasse(o: Profile) {
+    setResetError(null)
+    setResettingId(o.id)
+
+    const { data: sessionData } = await supabase.auth.getSession()
+    const token = sessionData.session?.access_token
+
+    const res = await fetch('/api/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ ouvrierId: o.id }),
+    })
+    const result = await res.json()
+
+    setResettingId(null)
+
+    if (!res.ok) {
+      setResetError(result.error ?? 'Erreur lors de la réinitialisation.')
+      return
+    }
+
+    setCreatedCreds({ email: o.email ?? '(email non renseigné)', password: result.password })
+  }
+
   async function toggleActive(o: Profile) {
     await supabase.from('profiles').update({ active: !o.active }).eq('id', o.id)
     load()
@@ -100,7 +126,7 @@ export default function AdminOuvriersPage() {
 
       {createdCreds && (
         <div className="mb-6 rounded-xl bg-emerald-50 p-4 text-emerald-900">
-          <p className="font-semibold">Compte créé.</p>
+          <p className="font-semibold">Identifiants à jour.</p>
           <p className="text-sm">
             Transmets ces identifiants à l'ouvrier (par SMS/WhatsApp) :
           </p>
@@ -114,6 +140,10 @@ export default function AdminOuvriersPage() {
             Fermer
           </button>
         </div>
+      )}
+
+      {resetError && (
+        <div className="mb-6 rounded-xl bg-red-50 p-4 text-sm text-red-700">{resetError}</div>
       )}
 
       {showForm && (
@@ -184,6 +214,7 @@ export default function AdminOuvriersPage() {
             <thead className="bg-slate-50 text-slate-500">
               <tr>
                 <th className="px-4 py-3 whitespace-nowrap">Nom</th>
+                <th className="px-4 py-3 whitespace-nowrap">Email (login)</th>
                 <th className="px-4 py-3 whitespace-nowrap">Statut</th>
                 <th className="px-4 py-3" />
               </tr>
@@ -193,6 +224,9 @@ export default function AdminOuvriersPage() {
                 <Fragment key={o.id}>
                   <tr className="border-t border-slate-100">
                     <td className="px-4 py-3 whitespace-nowrap font-medium text-slate-900">{o.full_name}</td>
+                    <td className="px-4 py-3 whitespace-nowrap font-mono text-xs text-slate-600">
+                      {o.email ?? '—'}
+                    </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <span
                         className={`rounded-full px-2 py-1 text-xs font-medium ${
@@ -209,6 +243,13 @@ export default function AdminOuvriersPage() {
                       >
                         Historique
                       </button>
+                      <button
+                        onClick={() => reinitialiserMotDePasse(o)}
+                        disabled={resettingId === o.id}
+                        className="mr-3 text-orange-600 hover:underline disabled:text-slate-300"
+                      >
+                        {resettingId === o.id ? '...' : 'Nouveau mot de passe'}
+                      </button>
                       <button onClick={() => toggleActive(o)} className="text-slate-500 hover:underline">
                         {o.active ? 'Archiver' : 'Réactiver'}
                       </button>
@@ -216,7 +257,7 @@ export default function AdminOuvriersPage() {
                   </tr>
                   {expandedId === o.id && (
                     <tr className="border-t border-slate-100 bg-slate-50">
-                      <td colSpan={3} className="px-4 py-3">
+                      <td colSpan={4} className="px-4 py-3">
                         {historique.length === 0 ? (
                           <p className="text-slate-400">Aucun pointage.</p>
                         ) : (
@@ -237,7 +278,7 @@ export default function AdminOuvriersPage() {
               ))}
               {ouvriers.length === 0 && (
                 <tr>
-                  <td colSpan={3} className="px-4 py-6 text-center text-slate-400">
+                  <td colSpan={4} className="px-4 py-6 text-center text-slate-400">
                     Aucun ouvrier pour le moment.
                   </td>
                 </tr>
