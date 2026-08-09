@@ -1,13 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
-import {
-  calculerCreneaux,
-  calculerDeductionsPauseMidi,
-  formatHeures,
-  tempsDeplacementMs,
-  type Creneau,
-  type DeductionPauseMidi,
-} from '../../lib/heures'
+import { construireResumeOuvrier, formatHeures, type CreneauAvecDeplacement, type ResumeOuvrier } from '../../lib/heures'
 import type { Chantier, PointageWithRelations } from '../../types/database'
 
 function telechargerCsv(nomFichier: string, header: string[], lignes: (string | number)[][]) {
@@ -23,18 +17,7 @@ function telechargerCsv(nomFichier: string, header: string[], lignes: (string | 
   URL.revokeObjectURL(url)
 }
 
-interface CreneauAvecDeplacement extends Creneau {
-  deplacementMs: number
-}
-
-interface ResumeOuvrier {
-  ouvrierId: string
-  nom: string
-  totalTravailBrutMs: number
-  totalPauseMs: number
-  totalDeplacementMs: number
-  creneaux: CreneauAvecDeplacement[]
-  deductions: DeductionPauseMidi[]
+interface ResumeOuvrierAffiche extends ResumeOuvrier {
   pointages: PointageWithRelations[]
 }
 
@@ -76,38 +59,11 @@ export default function AdminHeuresPage() {
     parOuvrierRaw.set(p.ouvrier_id, arr)
   }
 
-  const resumeOuvriers: ResumeOuvrier[] = [...parOuvrierRaw.entries()]
-    .map(([ouvrierId, ps]) => {
-      const creneauxBruts = calculerCreneaux(ps)
-      // Le forfait déplacement (depuis le bureau) ne s'applique qu'à la
-      // toute première arrivée de chaque jour : les trajets vers un
-      // deuxième chantier le même jour sont déjà payés via le temps de
-      // transit réel (voir calculerCreneaux).
-      const joursAvecForfait = new Set<string>()
-      const creneaux: CreneauAvecDeplacement[] = creneauxBruts.map((c) => {
-        const jour = new Date(c.debut).toDateString()
-        const premierDuJour = !joursAvecForfait.has(jour)
-        joursAvecForfait.add(jour)
-        return {
-          ...c,
-          deplacementMs: premierDuJour ? tempsDeplacementMs(chantiersMap.get(c.chantier_id)) : 0,
-        }
-      })
-      const deductions = calculerDeductionsPauseMidi(creneauxBruts)
-      const totalTravailBrutMs = creneaux.reduce((s, c) => s + c.dureeMs, 0)
-      const totalPauseMs = deductions.reduce((s, d) => s + d.deductionMs, 0)
-      const totalDeplacementMs = creneaux.reduce((s, c) => s + c.deplacementMs, 0)
-      return {
-        ouvrierId,
-        nom: ps[0].ouvrier.full_name,
-        totalTravailBrutMs,
-        totalPauseMs,
-        totalDeplacementMs,
-        creneaux,
-        deductions,
-        pointages: ps,
-      }
-    })
+  const resumeOuvriers: ResumeOuvrierAffiche[] = [...parOuvrierRaw.entries()]
+    .map(([ouvrierId, ps]) => ({
+      ...construireResumeOuvrier(ouvrierId, ps[0].ouvrier.full_name, ps, chantiersMap),
+      pointages: ps,
+    }))
     .sort((a, b) => a.nom.localeCompare(b.nom))
 
   const nomChantier = (chantierId: string, ps: PointageWithRelations[]) =>
@@ -135,7 +91,7 @@ export default function AdminHeuresPage() {
     }
   }
 
-  function exporterOuvrier(r: ResumeOuvrier) {
+  function exporterOuvrier(r: ResumeOuvrierAffiche) {
     const parJour = new Map<string, CreneauAvecDeplacement[]>()
     for (const c of r.creneaux) {
       const jour = new Date(c.debut).toDateString()
@@ -272,13 +228,22 @@ export default function AdminHeuresPage() {
                       <td className="px-4 py-3 font-semibold text-slate-900">
                         {formatHeures(r.totalTravailBrutMs - r.totalPauseMs + r.totalDeplacementMs)}
                       </td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-4 py-3 text-right whitespace-nowrap">
+                        {r.creneaux.length > 0 && (
+                          <Link
+                            to={`/admin/heures/fiche/${r.ouvrierId}?from=${from}&to=${to}`}
+                            target="_blank"
+                            className="mr-3 text-orange-600 hover:underline"
+                          >
+                            Fiche PDF
+                          </Link>
+                        )}
                         <button
                           onClick={() => exporterOuvrier(r)}
                           disabled={r.creneaux.length === 0}
-                          className="text-orange-600 hover:underline disabled:text-slate-300"
+                          className="text-slate-500 hover:underline disabled:text-slate-300"
                         >
-                          Exporter cette fiche (CSV)
+                          CSV
                         </button>
                       </td>
                     </tr>

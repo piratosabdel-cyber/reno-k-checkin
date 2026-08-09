@@ -121,3 +121,52 @@ export function formatHeures(ms: number): string {
   const m = totalMin % 60
   return `${h}h${String(m).padStart(2, '0')}`
 }
+
+export interface CreneauAvecDeplacement extends Creneau {
+  deplacementMs: number
+}
+
+export interface ResumeOuvrier {
+  ouvrierId: string
+  nom: string
+  totalTravailBrutMs: number
+  totalPauseMs: number
+  totalDeplacementMs: number
+  creneaux: CreneauAvecDeplacement[]
+  deductions: DeductionPauseMidi[]
+}
+
+/**
+ * Construit le résumé complet d'un ouvrier (créneaux + déplacement + pause
+ * midi) pour une période donnée. Logique centralisée ici pour que la page
+ * "Heures" et la fiche PDF individuelle affichent toujours les mêmes
+ * chiffres.
+ */
+export function construireResumeOuvrier(
+  ouvrierId: string,
+  nom: string,
+  pointagesTries: Pointage[],
+  chantiersMap: Map<string, Pick<Chantier, 'latitude' | 'longitude'>>
+): ResumeOuvrier {
+  const creneauxBruts = calculerCreneaux(pointagesTries)
+
+  // Le forfait déplacement (depuis le bureau) ne s'applique qu'à la toute
+  // première arrivée de chaque jour.
+  const joursAvecForfait = new Set<string>()
+  const creneaux: CreneauAvecDeplacement[] = creneauxBruts.map((c) => {
+    const jour = new Date(c.debut).toDateString()
+    const premierDuJour = !joursAvecForfait.has(jour)
+    joursAvecForfait.add(jour)
+    return {
+      ...c,
+      deplacementMs: premierDuJour ? tempsDeplacementMs(chantiersMap.get(c.chantier_id)) : 0,
+    }
+  })
+
+  const deductions = calculerDeductionsPauseMidi(creneauxBruts)
+  const totalTravailBrutMs = creneaux.reduce((s, c) => s + c.dureeMs, 0)
+  const totalPauseMs = deductions.reduce((s, d) => s + d.deductionMs, 0)
+  const totalDeplacementMs = creneaux.reduce((s, c) => s + c.deplacementMs, 0)
+
+  return { ouvrierId, nom, totalTravailBrutMs, totalPauseMs, totalDeplacementMs, creneaux, deductions }
+}

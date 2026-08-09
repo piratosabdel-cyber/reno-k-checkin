@@ -8,6 +8,7 @@ import AdminDashboardPage from './pages/admin/AdminDashboardPage'
 import AdminChantiersPage from './pages/admin/AdminChantiersPage'
 import AdminOuvriersPage from './pages/admin/AdminOuvriersPage'
 import AdminHeuresPage from './pages/admin/AdminHeuresPage'
+import FicheHeuresPage from './pages/admin/FicheHeuresPage'
 
 export default function App() {
   return (
@@ -38,6 +39,15 @@ export default function App() {
             <Route path="ouvriers" element={<AdminOuvriersPage />} />
             <Route path="heures" element={<AdminHeuresPage />} />
           </Route>
+
+          <Route
+            path="/admin/heures/fiche/:ouvrierId"
+            element={
+              <ProtectedRoute requireRole="admin">
+                <FicheHeuresPage />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </AuthProvider>
     </BrowserRouter>
