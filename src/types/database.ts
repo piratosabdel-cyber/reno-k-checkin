@@ -59,3 +59,9 @@ export interface PointageWithRelations extends Pointage {
   ouvrier: Pick<Profile, 'id' | 'full_name'>
   chantier: Pick<Chantier, 'id' | 'nom'>
 }
+
+export interface ParametresApp {
+  id: number
+  app_active: boolean
+  updated_at: string
+}
