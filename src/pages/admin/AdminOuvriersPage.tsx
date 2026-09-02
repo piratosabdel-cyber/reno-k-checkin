@@ -24,6 +24,9 @@ export default function AdminOuvriersPage() {
   )
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [historique, setHistorique] = useState<PointageWithRelations[]>([])
+  const [historiqueMois, setHistoriqueMois] = useState(() => new Date().toISOString().slice(0, 7))
+  const [historiqueChargement, setHistoriqueChargement] = useState(false)
+  const [justificationOuverteId, setJustificationOuverteId] = useState<string | null>(null)
   const [resettingId, setResettingId] = useState<string | null>(null)
   const [resetError, setResetError] = useState<string | null>(null)
   const [resetFormId, setResetFormId] = useState<string | null>(null)
@@ -123,19 +126,31 @@ export default function AdminOuvriersPage() {
     load()
   }
 
+  async function chargerHistorique(ouvrierId: string, mois: string) {
+    setHistoriqueChargement(true)
+    setJustificationOuverteId(null)
+    const debut = `${mois}-01T00:00:00`
+    const fin = new Date(Number(mois.slice(0, 4)), Number(mois.slice(5, 7)), 0) // dernier jour du mois
+    const { data } = await supabase
+      .from('pointages')
+      .select('*, chantier:chantiers(id, nom)')
+      .eq('ouvrier_id', ouvrierId)
+      .gte('heure_appareil', debut)
+      .lte('heure_appareil', `${fin.toISOString().slice(0, 10)}T23:59:59`)
+      .order('heure_appareil', { ascending: false })
+    setHistorique((data as unknown as PointageWithRelations[]) ?? [])
+    setHistoriqueChargement(false)
+  }
+
   async function toggleHistorique(o: Profile) {
     if (expandedId === o.id) {
       setExpandedId(null)
       return
     }
     setExpandedId(o.id)
-    const { data } = await supabase
-      .from('pointages')
-      .select('*, chantier:chantiers(id, nom)')
-      .eq('ouvrier_id', o.id)
-      .order('heure_appareil', { ascending: false })
-      .limit(10)
-    setHistorique((data as unknown as PointageWithRelations[]) ?? [])
+    const moisActuel = new Date().toISOString().slice(0, 7)
+    setHistoriqueMois(moisActuel)
+    chargerHistorique(o.id, moisActuel)
   }
 
   const ouvriersFiltres = ouvriers.filter((o) => {
@@ -363,15 +378,49 @@ export default function AdminOuvriersPage() {
                   {expandedId === o.id && (
                     <tr className="border-t border-slate-100 bg-slate-50">
                       <td colSpan={4} className="px-4 py-3">
-                        {historique.length === 0 ? (
-                          <p className="text-slate-400">Aucun pointage.</p>
+                        <div className="mb-3 flex items-center gap-2">
+                          <label className="text-sm font-medium text-slate-700">Mois</label>
+                          <input
+                            type="month"
+                            value={historiqueMois}
+                            onChange={(e) => {
+                              setHistoriqueMois(e.target.value)
+                              chargerHistorique(o.id, e.target.value)
+                            }}
+                            className="rounded-lg border border-slate-300 px-2 py-1 text-sm"
+                          />
+                        </div>
+                        {historiqueChargement ? (
+                          <p className="text-slate-400">Chargement...</p>
+                        ) : historique.length === 0 ? (
+                          <p className="text-slate-400">Aucun pointage ce mois-ci.</p>
                         ) : (
                           <ul className="space-y-1">
                             {historique.map((p) => (
                               <li key={p.id} className="text-slate-600">
                                 {p.chantier.nom} — {LABELS_TYPE[p.type]} —{' '}
                                 {new Date(p.heure_appareil).toLocaleString('fr-BE')}
-                                {p.hors_zone && <span className="ml-2 text-amber-600">(hors zone)</span>}
+                                {p.hors_zone && (
+                                  <>
+                                    {' '}
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setJustificationOuverteId(justificationOuverteId === p.id ? null : p.id)
+                                      }
+                                      className="text-amber-700 underline decoration-dotted hover:text-amber-900"
+                                    >
+                                      (hors zone)
+                                    </button>
+                                  </>
+                                )}
+                                {justificationOuverteId === p.id && (
+                                  <div className="mt-1 ml-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                                    {p.justification
+                                      ? `« ${p.justification} »`
+                                      : "Aucun commentaire n'a été laissé par l'ouvrier."}
+                                  </div>
+                                )}
                               </li>
                             ))}
                           </ul>
