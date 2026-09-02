@@ -131,12 +131,12 @@ export default function FicheHeuresPage() {
                     .map((d) => (
                       <tr key={`${jour}-pause`} className="border-b border-slate-100 text-amber-700">
                         <td className="py-2 pr-2" />
-                        <td className="py-2 pr-2 italic">Pause de midi</td>
+                        <td colSpan={2} className="py-2 pr-2 italic">
+                          Pause de midi : -{formatHeures(d.deductionMs)}
+                        </td>
                         <td className="py-2 pr-2" />
                         <td className="py-2 pr-2" />
-                        <td className="py-2 pr-2 text-right">-{formatHeures(d.deductionMs)}</td>
-                        <td className="py-2 pr-2" />
-                        <td className="py-2 text-right">-{formatHeures(d.deductionMs)}</td>
+                        <td className="py-2" />
                       </tr>
                     ))}
                 </Fragment>
