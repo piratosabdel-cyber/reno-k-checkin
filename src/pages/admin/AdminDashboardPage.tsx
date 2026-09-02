@@ -192,6 +192,7 @@ export default function AdminDashboardPage() {
                     <th className="px-4 py-3 whitespace-nowrap">Type</th>
                     <th className="px-4 py-3 whitespace-nowrap">Heure</th>
                     <th className="px-4 py-3 whitespace-nowrap">Statut</th>
+                    <th className="px-4 py-3 whitespace-nowrap">Position</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -213,12 +214,29 @@ export default function AdminDashboardPage() {
                         >
                           {p.statut === 'accepte' ? 'Accepté' : p.statut === 'hors_zone' ? 'Hors zone' : p.statut}
                         </span>
+                        {p.hors_zone && p.distance_chantier_m != null && (
+                          <span className="ml-2 text-xs text-slate-400">({p.distance_chantier_m} m)</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        {p.latitude != null && p.longitude != null ? (
+                          <a
+                            href={`https://www.google.com/maps?q=${p.latitude},${p.longitude}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-orange-600 hover:underline"
+                          >
+                            📍 Voir sur la carte
+                          </a>
+                        ) : (
+                          <span className="text-slate-300">—</span>
+                        )}
                       </td>
                     </tr>
                   ))}
                   {pointages.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="px-4 py-6 text-center text-slate-400">
+                      <td colSpan={6} className="px-4 py-6 text-center text-slate-400">
                         Aucun pointage {estAujourdhui ? "aujourd'hui" : 'ce jour-là'}.
                       </td>
                     </tr>
