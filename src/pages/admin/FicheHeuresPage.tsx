@@ -148,17 +148,18 @@ export default function FicheHeuresPage() {
                   </td>
                 </tr>
               )}
-            </tbody>
-            <tfoot>
-              <tr className="border-t-2 border-slate-300 text-base font-bold text-slate-900">
-                <td colSpan={4} className="py-3">
+              <tr aria-hidden="true">
+                <td colSpan={7} className="h-6" />
+              </tr>
+              <tr className="break-inside-avoid border-t-2 border-slate-300 text-base font-bold text-slate-900">
+                <td colSpan={4} className="py-4">
                   TOTAL
                 </td>
-                <td className="py-3 text-right">{formatHeures(totalTravailNetMs)}</td>
-                <td className="py-3 text-right">{formatHeures(resume.totalDeplacementMs)}</td>
-                <td className="py-3 text-right">{formatHeures(totalPayeMs)}</td>
+                <td className="py-4 text-right">{formatHeures(totalTravailNetMs)}</td>
+                <td className="py-4 text-right">{formatHeures(resume.totalDeplacementMs)}</td>
+                <td className="py-4 text-right">{formatHeures(totalPayeMs)}</td>
               </tr>
-            </tfoot>
+            </tbody>
           </table>
 
           <p className="mt-8 text-xs text-slate-400">
