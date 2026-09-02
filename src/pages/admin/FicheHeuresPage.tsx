@@ -148,19 +148,25 @@ export default function FicheHeuresPage() {
                   </td>
                 </tr>
               )}
-              <tr aria-hidden="true">
-                <td colSpan={7} className="h-6" />
-              </tr>
-              <tr className="break-inside-avoid border-t-2 border-slate-300 text-base font-bold text-slate-900">
-                <td colSpan={4} className="py-4">
-                  TOTAL
-                </td>
-                <td className="py-4 text-right">{formatHeures(totalTravailNetMs)}</td>
-                <td className="py-4 text-right">{formatHeures(resume.totalDeplacementMs)}</td>
-                <td className="py-4 text-right">{formatHeures(totalPayeMs)}</td>
-              </tr>
             </tbody>
           </table>
+
+          <div className="mt-4 flex justify-end break-inside-avoid">
+            <div className="w-64 space-y-1">
+              <div className="flex justify-between text-sm text-slate-600">
+                <span>Heures</span>
+                <span>{formatHeures(totalTravailNetMs)}</span>
+              </div>
+              <div className="flex justify-between text-sm text-slate-600">
+                <span>Déplacement</span>
+                <span>{formatHeures(resume.totalDeplacementMs)}</span>
+              </div>
+              <div className="flex justify-between border-t-2 border-slate-300 pt-1 text-base font-bold text-slate-900">
+                <span>Total</span>
+                <span>{formatHeures(totalPayeMs)}</span>
+              </div>
+            </div>
+          </div>
 
           <p className="mt-8 text-xs text-slate-400">
             Pause de midi déduite forfaitairement (30 min/jour), sauf le samedi. Déplacement payé à l'aller,
