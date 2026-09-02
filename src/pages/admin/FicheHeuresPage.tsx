@@ -91,8 +91,8 @@ export default function FicheHeuresPage() {
               <tr className="border-b border-slate-300 text-slate-500">
                 <th className="py-2 pr-2">Date</th>
                 <th className="py-2 pr-2">Chantier</th>
-                <th className="py-2 pr-2">Arrivée</th>
-                <th className="py-2 pr-2">Départ</th>
+                <th className="py-2 pr-2">Check-in</th>
+                <th className="py-2 pr-2">Check-out</th>
                 <th className="py-2 pr-2 text-right">Heures</th>
                 <th className="py-2 pr-2 text-right">Déplacement</th>
                 <th className="py-2 text-right">Total</th>
@@ -109,9 +109,15 @@ export default function FicheHeuresPage() {
                       <td className="py-2 pr-2 text-slate-700">{nomsChantiers.get(c.chantier_id) ?? '?'}</td>
                       <td className="py-2 pr-2 text-slate-700">
                         {new Date(c.debut).toLocaleTimeString('fr-BE', { hour: '2-digit', minute: '2-digit' })}
+                        {c.arriveeHorsZone && (
+                          <span className="ml-1 text-xs font-medium text-amber-600">(hors zone)</span>
+                        )}
                       </td>
                       <td className="py-2 pr-2 text-slate-700">
                         {new Date(c.fin).toLocaleTimeString('fr-BE', { hour: '2-digit', minute: '2-digit' })}
+                        {c.departHorsZone && (
+                          <span className="ml-1 text-xs font-medium text-amber-600">(hors zone)</span>
+                        )}
                       </td>
                       <td className="py-2 pr-2 text-right text-slate-700">{formatHeures(c.dureeMs)}</td>
                       <td className="py-2 pr-2 text-right text-slate-500">{formatHeures(c.deplacementMs)}</td>

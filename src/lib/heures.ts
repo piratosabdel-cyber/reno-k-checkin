@@ -22,6 +22,10 @@ export interface Creneau {
   debut: string
   fin: string
   dureeMs: number
+  /** Le check-in (arrivée) de ce créneau était-il hors de la zone autorisée du chantier ? */
+  arriveeHorsZone: boolean
+  /** Le check-out (départ) de ce créneau était-il hors de la zone autorisée du chantier ? */
+  departHorsZone: boolean
 }
 
 /**
@@ -61,6 +65,8 @@ export function calculerCreneaux(pointagesTries: Pointage[]): Creneau[] {
         debut: arrivee.heure_appareil,
         fin: p.heure_appareil,
         dureeMs: Math.max(0, dureeMs),
+        arriveeHorsZone: arrivee.hors_zone,
+        departHorsZone: p.hors_zone,
       })
       arrivee = null
       pauseMs = 0

@@ -107,7 +107,9 @@ export default function AdminHeuresPage() {
           new Date(c.debut).toLocaleDateString('fr-BE'),
           nomChantier(c.chantier_id, r.pointages),
           new Date(c.debut).toLocaleTimeString('fr-BE', { hour: '2-digit', minute: '2-digit' }),
+          c.arriveeHorsZone ? 'Hors zone' : '',
           new Date(c.fin).toLocaleTimeString('fr-BE', { hour: '2-digit', minute: '2-digit' }),
+          c.departHorsZone ? 'Hors zone' : '',
           formatHeures(c.dureeMs),
           formatHeures(c.deplacementMs),
           formatHeures(c.dureeMs + c.deplacementMs),
@@ -118,6 +120,8 @@ export default function AdminHeuresPage() {
         lignes.push([
           new Date(jour).toLocaleDateString('fr-BE'),
           'Pause de midi (déduction)',
+          '',
+          '',
           '',
           '',
           `-${formatHeures(deduction.deductionMs)}`,
@@ -132,6 +136,8 @@ export default function AdminHeuresPage() {
       '',
       '',
       '',
+      '',
+      '',
       'TOTAL',
       formatHeures(totalTravailNetMs),
       formatHeures(r.totalDeplacementMs),
@@ -140,7 +146,17 @@ export default function AdminHeuresPage() {
 
     telechargerCsv(
       `heures_${r.nom.replace(/\s+/g, '_')}_${from}_${to}.csv`,
-      ['Date', 'Chantier', 'Arrivée', 'Départ', 'Heures', 'Déplacement (aller)', 'Total payé'],
+      [
+        'Date',
+        'Chantier',
+        'Check-in (arrivée)',
+        'Check-in hors zone',
+        'Check-out (départ)',
+        'Check-out hors zone',
+        'Heures',
+        'Déplacement (aller)',
+        'Total payé',
+      ],
       lignes
     )
   }
