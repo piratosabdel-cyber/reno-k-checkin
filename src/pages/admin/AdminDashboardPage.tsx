@@ -86,12 +86,27 @@ export default function AdminDashboardPage() {
   }, [loadJour])
 
   // Statut de présence "en direct" par ouvrier : basé sur son dernier évènement du jour.
-  const presenceParOuvrier = new Map<string, { ouvrier: Profile; chantier: Chantier; dernierType: TypePointage }>()
+  const presenceParOuvrier = new Map<
+    string,
+    {
+      ouvrier: Profile
+      chantier: Chantier
+      dernierType: TypePointage
+      latitude: number | null
+      longitude: number | null
+      hors_zone: boolean
+      distance_chantier_m: number | null
+    }
+  >()
   for (const p of [...pointages].reverse()) {
     presenceParOuvrier.set(p.ouvrier_id, {
       ouvrier: p.ouvrier as Profile,
       chantier: p.chantier as Chantier,
       dernierType: p.type,
+      latitude: p.latitude,
+      longitude: p.longitude,
+      hors_zone: p.hors_zone,
+      distance_chantier_m: p.distance_chantier_m,
     })
   }
 
@@ -153,6 +168,7 @@ export default function AdminDashboardPage() {
                     <th className="px-4 py-3 whitespace-nowrap">Ouvrier</th>
                     <th className="px-4 py-3 whitespace-nowrap">Chantier</th>
                     <th className="px-4 py-3 whitespace-nowrap">Statut actuel</th>
+                    <th className="px-4 py-3 whitespace-nowrap">Position</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -166,13 +182,30 @@ export default function AdminDashboardPage() {
                           <span className={`rounded-full px-2 py-1 text-xs font-medium ${s.classe}`}>
                             {s.label}
                           </span>
+                          {p.hors_zone && p.distance_chantier_m != null && (
+                            <span className="ml-2 text-xs text-amber-600">({p.distance_chantier_m} m)</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          {p.latitude != null && p.longitude != null ? (
+                            <a
+                              href={`https://www.google.com/maps?q=${p.latitude},${p.longitude}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-orange-600 hover:underline"
+                            >
+                              📍 Voir sur la carte
+                            </a>
+                          ) : (
+                            <span className="text-slate-300">—</span>
+                          )}
                         </td>
                       </tr>
                     )
                   })}
                   {presenceParOuvrier.size === 0 && (
                     <tr>
-                      <td colSpan={3} className="px-4 py-6 text-center text-slate-400">
+                      <td colSpan={4} className="px-4 py-6 text-center text-slate-400">
                         Personne n'a pointé {estAujourdhui ? "aujourd'hui" : 'ce jour-là'}.
                       </td>
                     </tr>
