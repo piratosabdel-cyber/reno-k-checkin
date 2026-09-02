@@ -10,10 +10,8 @@ const LABELS: Record<TypePointage, string> = {
   depart: 'Départ',
 }
 
-function startOfToday() {
-  const d = new Date()
-  d.setHours(0, 0, 0, 0)
-  return d.toISOString()
+function aujourdhui() {
+  return new Date().toISOString().slice(0, 10)
 }
 
 function fmtHeure(iso: string) {
@@ -28,21 +26,25 @@ function statutPresence(dernierType: TypePointage): { label: string; classe: str
 }
 
 export default function AdminDashboardPage() {
+  const [date, setDate] = useState(aujourdhui())
   const [pointages, setPointages] = useState<PointageWithRelations[]>([])
   const [chantiers, setChantiers] = useState<Chantier[]>([])
   const [manquants, setManquants] = useState<{ ouvrier: Profile; chantier: Chantier }[]>([])
   const [loading, setLoading] = useState(true)
 
-  const loadToday = useCallback(async () => {
+  const estAujourdhui = date === aujourdhui()
+
+  const loadJour = useCallback(async () => {
     setLoading(true)
 
-    const { data: todayPointages } = await supabase
+    const { data: pointagesJour } = await supabase
       .from('pointages')
       .select('*, ouvrier:profiles(id, full_name), chantier:chantiers(id, nom)')
-      .gte('heure_appareil', startOfToday())
+      .gte('heure_appareil', `${date}T00:00:00`)
+      .lte('heure_appareil', `${date}T23:59:59`)
       .order('heure_appareil', { ascending: false })
 
-    const rows = (todayPointages as unknown as PointageWithRelations[]) ?? []
+    const rows = (pointagesJour as unknown as PointageWithRelations[]) ?? []
     setPointages(rows)
 
     const [{ data: assignments }, { data: chantiersActifs }] = await Promise.all([
@@ -66,22 +68,22 @@ export default function AdminDashboardPage() {
 
     setManquants(missing)
     setLoading(false)
-  }, [])
+  }, [date])
 
   useEffect(() => {
-    loadToday()
+    loadJour()
 
     const channel = supabase
       .channel('pointages-live')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'pointages' }, () => {
-        loadToday()
+        loadJour()
       })
       .subscribe()
 
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [loadToday])
+  }, [loadJour])
 
   // Statut de présence "en direct" par ouvrier : basé sur son dernier évènement du jour.
   const presenceParOuvrier = new Map<string, { ouvrier: Profile; chantier: Chantier; dernierType: TypePointage }>()
@@ -95,11 +97,36 @@ export default function AdminDashboardPage() {
 
   return (
     <div>
-      <h1 className="mb-4 text-2xl font-bold text-slate-900">Vue du jour</h1>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold text-slate-900">
+          {estAujourdhui
+            ? 'Vue du jour'
+            : `Vue du ${new Date(`${date}T00:00:00`).toLocaleDateString('fr-BE', { weekday: 'long', day: 'numeric', month: 'long' })}`}
+        </h1>
+        <div className="flex items-center gap-2">
+          <input
+            type="date"
+            value={date}
+            max={aujourdhui()}
+            onChange={(e) => setDate(e.target.value)}
+            className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          />
+          {!estAujourdhui && (
+            <button
+              onClick={() => setDate(aujourdhui())}
+              className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50"
+            >
+              Aujourd'hui
+            </button>
+          )}
+        </div>
+      </div>
 
       {manquants.length > 0 && (
         <div className="mb-4 rounded-xl bg-amber-50 p-4 text-amber-900">
-          <p className="mb-1 font-semibold">⚠ Pas encore pointé aujourd'hui :</p>
+          <p className="mb-1 font-semibold">
+            ⚠ {estAujourdhui ? "Pas encore pointé aujourd'hui" : 'N\'a pas pointé ce jour-là'} :
+          </p>
           <ul className="list-inside list-disc text-sm">
             {manquants.map((m, i) => (
               <li key={i}>
@@ -146,7 +173,7 @@ export default function AdminDashboardPage() {
                   {presenceParOuvrier.size === 0 && (
                     <tr>
                       <td colSpan={3} className="px-4 py-6 text-center text-slate-400">
-                        Personne n'a pointé aujourd'hui.
+                        Personne n'a pointé {estAujourdhui ? "aujourd'hui" : 'ce jour-là'}.
                       </td>
                     </tr>
                   )}
@@ -192,7 +219,7 @@ export default function AdminDashboardPage() {
                   {pointages.length === 0 && (
                     <tr>
                       <td colSpan={5} className="px-4 py-6 text-center text-slate-400">
-                        Aucun pointage aujourd'hui.
+                        Aucun pointage {estAujourdhui ? "aujourd'hui" : 'ce jour-là'}.
                       </td>
                     </tr>
                   )}
