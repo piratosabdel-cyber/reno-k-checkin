@@ -157,19 +157,17 @@ export function construireResumeOuvrier(
   const creneauxBruts = calculerCreneaux(pointagesTries)
 
   // Le forfait déplacement (depuis le bureau) ne s'applique qu'à la toute
-  // première arrivée de chaque jour — et seulement si cette arrivée est
-  // dans la zone autorisée du chantier (une arrivée hors zone n'ouvre pas
-  // droit au forfait ; si une arrivée valide suit le même jour, c'est elle
-  // qui en bénéficie).
+  // première arrivée de chaque jour, hors-zone ou pas — un seul "slot" par
+  // jour. Si cette première arrivée est hors zone, le forfait du jour est
+  // simplement perdu (pas de forfait), il ne se reporte pas sur une
+  // arrivée suivante.
   const joursAvecForfait = new Set<string>()
   const creneaux: CreneauAvecDeplacement[] = creneauxBruts.map((c) => {
     const jour = new Date(c.debut).toDateString()
-    const dejaUtilise = joursAvecForfait.has(jour)
-    let deplacementMs = 0
-    if (!dejaUtilise && !c.arriveeHorsZone) {
-      deplacementMs = tempsDeplacementMs(chantiersMap.get(c.chantier_id))
-      joursAvecForfait.add(jour)
-    }
+    const premierDuJour = !joursAvecForfait.has(jour)
+    joursAvecForfait.add(jour)
+    const deplacementMs =
+      premierDuJour && !c.arriveeHorsZone ? tempsDeplacementMs(chantiersMap.get(c.chantier_id)) : 0
     return { ...c, deplacementMs }
   })
 
