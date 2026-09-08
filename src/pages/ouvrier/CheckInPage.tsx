@@ -65,6 +65,8 @@ export default function CheckInPage() {
     distance: number | null
   } | null>(null)
   const [justificationTexte, setJustificationTexte] = useState('')
+  const [commentaireOuvert, setCommentaireOuvert] = useState(false)
+  const [commentaireTexte, setCommentaireTexte] = useState('')
 
   const loadData = useCallback(async () => {
     if (!profile) return
@@ -278,6 +280,14 @@ export default function CheckInPage() {
         hors_zone = distance > chantier.rayon_metres
       }
     } catch {
+      setWorking(false)
+      if (type === 'arrivee') {
+        setMessage({
+          type: 'error',
+          text: "Position GPS requise pour pointer l'arrivée. Active la localisation et réessaie.",
+        })
+        return
+      }
       setMessage({
         type: 'warning',
         text: 'Position GPS non disponible — pointage enregistré sans localisation.',
@@ -286,21 +296,32 @@ export default function CheckInPage() {
 
     setWorking(false)
 
-    if (hors_zone && chantier?.mode_hors_zone === 'bloquer') {
+    // Le check-in n'est autorisé que dans la zone du chantier, sans exception.
+    if (type === 'arrivee' && hors_zone) {
       setMessage({
         type: 'error',
-        text: `Pointage refusé : tu es à ${distance} m du chantier (zone autorisée : ${chantier.rayon_metres} m). Rapproche-toi et réessaie.`,
+        text: `Check-in refusé : tu es à ${distance} m du chantier (zone autorisée : ${chantier?.rayon_metres} m). Rapproche-toi et réessaie.`,
       })
       return
     }
 
-    if (hors_zone && chantier?.mode_hors_zone === 'justifier') {
+    if (type === 'depart' && hors_zone && chantier?.mode_hors_zone === 'bloquer') {
+      setMessage({
+        type: 'error',
+        text: `Pointage refusé : tu es à ${distance} m du chantier (zone autorisée : ${chantier?.rayon_metres} m). Rapproche-toi et réessaie.`,
+      })
+      return
+    }
+
+    if (type === 'depart' && hors_zone && chantier?.mode_hors_zone === 'justifier') {
       setJustificationRequise({ type, lat, lng, precision, distance })
       return
     }
 
     setWorking(true)
-    await enregistrerPointage(type, lat, lng, precision, distance, false, null)
+    await enregistrerPointage(type, lat, lng, precision, distance, false, commentaireTexte.trim() || null)
+    setCommentaireTexte('')
+    setCommentaireOuvert(false)
     setWorking(false)
   }
 
@@ -447,6 +468,27 @@ export default function CheckInPage() {
                   </option>
                 ))}
               </select>
+
+              <div className="mt-4">
+                {commentaireOuvert ? (
+                  <textarea
+                    value={commentaireTexte}
+                    onChange={(e) => setCommentaireTexte(e.target.value)}
+                    placeholder="Remarque (optionnel)..."
+                    rows={2}
+                    autoFocus
+                    className="w-full rounded-xl border border-slate-300 px-4 py-3 text-base focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200"
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setCommentaireOuvert(true)}
+                    className="text-sm text-slate-500 underline decoration-dotted"
+                  >
+                    + Ajouter un commentaire
+                  </button>
+                )}
+              </div>
 
               <div className="mt-6 grid gap-3">
                 {options.map((type) => (
