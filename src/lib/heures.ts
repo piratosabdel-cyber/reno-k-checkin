@@ -157,16 +157,20 @@ export function construireResumeOuvrier(
   const creneauxBruts = calculerCreneaux(pointagesTries)
 
   // Le forfait déplacement (depuis le bureau) ne s'applique qu'à la toute
-  // première arrivée de chaque jour.
+  // première arrivée de chaque jour — et seulement si cette arrivée est
+  // dans la zone autorisée du chantier (une arrivée hors zone n'ouvre pas
+  // droit au forfait ; si une arrivée valide suit le même jour, c'est elle
+  // qui en bénéficie).
   const joursAvecForfait = new Set<string>()
   const creneaux: CreneauAvecDeplacement[] = creneauxBruts.map((c) => {
     const jour = new Date(c.debut).toDateString()
-    const premierDuJour = !joursAvecForfait.has(jour)
-    joursAvecForfait.add(jour)
-    return {
-      ...c,
-      deplacementMs: premierDuJour ? tempsDeplacementMs(chantiersMap.get(c.chantier_id)) : 0,
+    const dejaUtilise = joursAvecForfait.has(jour)
+    let deplacementMs = 0
+    if (!dejaUtilise && !c.arriveeHorsZone) {
+      deplacementMs = tempsDeplacementMs(chantiersMap.get(c.chantier_id))
+      joursAvecForfait.add(jour)
     }
+    return { ...c, deplacementMs }
   })
 
   const deductions = calculerDeductionsPauseMidi(creneauxBruts)
