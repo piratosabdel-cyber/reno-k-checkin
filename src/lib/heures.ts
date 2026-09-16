@@ -6,13 +6,13 @@ export const BUREAU = { lat: 50.916299, lng: 4.21763 }
 
 /**
  * Forfait déplacement "aller" payé pour un chantier donné, en fonction de sa
- * distance au bureau : 15 min si < 10 km, 30 min si >= 10 km. Retourne 0 si
+ * distance au bureau : 15 min si <= 15 km, 30 min au-delà. Retourne 0 si
  * le chantier n'a pas de coordonnées GPS renseignées (impossible à calculer).
  */
 export function tempsDeplacementMs(chantier: Pick<Chantier, 'latitude' | 'longitude'> | undefined | null): number {
   if (!chantier?.latitude || !chantier?.longitude) return 0
   const distanceKm = distanceMetres(BUREAU.lat, BUREAU.lng, chantier.latitude, chantier.longitude) / 1000
-  const minutes = distanceKm < 10 ? 15 : 30
+  const minutes = distanceKm <= 15 ? 15 : 30
   return minutes * 60000
 }
 

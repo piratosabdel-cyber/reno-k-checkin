@@ -170,7 +170,7 @@ export default function FicheHeuresPage() {
 
           <p className="mt-8 text-xs text-slate-400">
             Pause de midi déduite forfaitairement (30 min/jour), sauf le samedi. Déplacement payé à l'aller,
-            forfait unique par jour selon la distance au bureau (15 min si &lt; 10 km, 30 min au-delà).
+            forfait unique par jour selon la distance au bureau (15 min jusqu'à 15 km, 30 min au-delà).
           </p>
         </div>
       </div>
