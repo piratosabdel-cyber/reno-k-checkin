@@ -39,12 +39,15 @@ export default function AdminDashboardPage() {
 
     const { data: pointagesJour } = await supabase
       .from('pointages')
-      .select('*, ouvrier:profiles(id, full_name), chantier:chantiers(id, nom)')
+      .select('*, ouvrier:profiles(id, full_name, active), chantier:chantiers(id, nom)')
       .gte('heure_appareil', `${date}T00:00:00`)
       .lte('heure_appareil', `${date}T23:59:59`)
       .order('heure_appareil', { ascending: false })
 
-    const rows = (pointagesJour as unknown as PointageWithRelations[]) ?? []
+    // Les ouvriers dont l'accès est bloqué n'apparaissent plus dans la vue du jour.
+    const rows = ((pointagesJour as unknown as PointageWithRelations[]) ?? []).filter(
+      (p) => (p.ouvrier as Profile)?.active !== false
+    )
     setPointages(rows)
 
     const [{ data: assignments }, { data: chantiersActifs }] = await Promise.all([
