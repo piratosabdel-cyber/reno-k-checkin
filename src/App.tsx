@@ -9,10 +9,17 @@ import AdminChantiersPage from './pages/admin/AdminChantiersPage'
 import AdminOuvriersPage from './pages/admin/AdminOuvriersPage'
 import AdminHeuresPage from './pages/admin/AdminHeuresPage'
 import FicheHeuresPage from './pages/admin/FicheHeuresPage'
+import { useAutoUpdate } from './hooks/useAutoUpdate'
+
+function AutoUpdate() {
+  useAutoUpdate()
+  return null
+}
 
 export default function App() {
   return (
     <BrowserRouter>
+      <AutoUpdate />
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
