@@ -22,12 +22,13 @@ interface ResumeOuvrierAffiche extends ResumeOuvrier {
 }
 
 export default function AdminHeuresPage() {
-  const [from, setFrom] = useState(() => {
+  const [mois, setMois] = useState(() => {
     const d = new Date()
-    d.setDate(d.getDate() - 7)
-    return d.toISOString().slice(0, 10)
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
   })
-  const [to, setTo] = useState(() => new Date().toISOString().slice(0, 10))
+  const [annee, moisIndex] = mois.split('-').map(Number)
+  const from = `${mois}-01`
+  const to = `${mois}-${String(new Date(annee, moisIndex, 0).getDate()).padStart(2, '0')}`
   const [pointages, setPointages] = useState<PointageWithRelations[]>([])
   const [chantiersMap, setChantiersMap] = useState<Map<string, Chantier>>(new Map())
   const [loading, setLoading] = useState(true)
@@ -193,23 +194,19 @@ export default function AdminHeuresPage() {
 
         <div className="mb-6 flex flex-wrap items-end gap-4 rounded-xl bg-white p-4 shadow-sm">
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Du</label>
+            <label className="mb-1 block text-sm font-medium text-slate-700">Mois</label>
             <input
-              type="date"
-              value={from}
-              onChange={(e) => setFrom(e.target.value)}
+              type="month"
+              value={mois}
+              max={`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`}
+              onChange={(e) => e.target.value && setMois(e.target.value)}
               className="rounded-lg border border-slate-300 px-3 py-2"
             />
           </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Au</label>
-            <input
-              type="date"
-              value={to}
-              onChange={(e) => setTo(e.target.value)}
-              className="rounded-lg border border-slate-300 px-3 py-2"
-            />
-          </div>
+          <p className="pb-2 text-sm text-slate-500">
+            {new Date(annee, moisIndex - 1, 1).toLocaleDateString('fr-BE', { month: 'long', year: 'numeric' })}
+            {' '}— du 1er au {new Date(annee, moisIndex, 0).getDate()}
+          </p>
         </div>
 
         {chantiersSansCoords.size > 0 && (
