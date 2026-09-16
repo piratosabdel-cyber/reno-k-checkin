@@ -24,6 +24,7 @@ export default function AdminChantiersPage() {
   const [form, setForm] = useState(emptyForm)
   const [saving, setSaving] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [filtreStatut, setFiltreStatut] = useState<'actif' | 'archive' | 'tous'>('actif')
 
   async function load() {
     setLoading(true)
@@ -118,17 +119,55 @@ export default function AdminChantiersPage() {
     load()
   }
 
+  const chantiersFiltres = chantiers.filter((c) => {
+    if (filtreStatut === 'actif') return c.statut === 'actif'
+    if (filtreStatut === 'archive') return c.statut === 'termine'
+    return true
+  })
+  const nbActifs = chantiers.filter((c) => c.statut === 'actif').length
+  const nbArchives = chantiers.length - nbActifs
+
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-slate-900">Chantiers</h1>
-        <button
-          onClick={() => (showForm ? setShowForm(false) : startEdit())}
-          className="rounded-lg bg-orange-600 px-4 py-2 font-medium text-white hover:bg-orange-700"
-        >
-          {showForm ? 'Annuler' : '+ Nouveau chantier'}
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex gap-1 rounded-lg bg-slate-100 p-1 text-sm">
+            {(
+              [
+                ['actif', `Actifs (${nbActifs})`],
+                ['archive', `Archivés (${nbArchives})`],
+                ['tous', `Tous (${chantiers.length})`],
+              ] as const
+            ).map(([valeur, libelle]) => (
+              <button
+                key={valeur}
+                onClick={() => setFiltreStatut(valeur)}
+                className={`rounded-md px-3 py-1.5 font-medium transition ${
+                  filtreStatut === valeur
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                {libelle}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => (showForm ? setShowForm(false) : startEdit())}
+            className="rounded-lg bg-orange-600 px-4 py-2 font-medium text-white hover:bg-orange-700"
+          >
+            {showForm ? 'Annuler' : '+ Nouveau chantier'}
+          </button>
+        </div>
       </div>
+
+      {filtreStatut === 'archive' && (
+        <p className="mb-4 text-sm text-slate-500">
+          Les chantiers archivés ne sont visibles que par toi — ils n'apparaissent jamais dans l'écran de
+          pointage des ouvriers.
+        </p>
+      )}
 
       {showForm && (
         <form onSubmit={handleSubmit} className="mb-6 grid gap-4 rounded-xl bg-white p-6 shadow-sm sm:grid-cols-2">
@@ -248,7 +287,7 @@ export default function AdminChantiersPage() {
               </tr>
             </thead>
             <tbody>
-              {chantiers.map((c) => (
+              {chantiersFiltres.map((c) => (
                 <Fragment key={c.id}>
                   <tr className="border-t border-slate-100">
                     <td className="px-4 py-3 whitespace-nowrap font-medium text-slate-900">{c.nom}</td>
@@ -261,7 +300,7 @@ export default function AdminChantiersPage() {
                             : 'bg-slate-100 text-slate-500'
                         }`}
                       >
-                        {c.statut === 'actif' ? 'Actif' : 'Terminé'}
+                        {c.statut === 'actif' ? 'Actif' : 'Archivé'}
                       </span>
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-right">
@@ -275,7 +314,7 @@ export default function AdminChantiersPage() {
                         Modifier
                       </button>
                       <button onClick={() => toggleStatut(c)} className="text-slate-500 hover:underline">
-                        {c.statut === 'actif' ? 'Terminer' : 'Réactiver'}
+                        {c.statut === 'actif' ? 'Archiver' : 'Réactiver'}
                       </button>
                     </td>
                   </tr>
@@ -315,10 +354,10 @@ export default function AdminChantiersPage() {
                   )}
                 </Fragment>
               ))}
-              {chantiers.length === 0 && (
+              {chantiersFiltres.length === 0 && (
                 <tr>
                   <td colSpan={4} className="px-4 py-6 text-center text-slate-400">
-                    Aucun chantier pour le moment.
+                    {chantiers.length === 0 ? 'Aucun chantier pour le moment.' : 'Aucun chantier dans cette catégorie.'}
                   </td>
                 </tr>
               )}
