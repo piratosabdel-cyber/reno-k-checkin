@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useState, type FormEvent } from 'react'
 import { supabase } from '../../lib/supabase'
+import ChantierLocationPicker from '../../components/ChantierLocationPicker'
 import type { Chantier, Profile } from '../../types/database'
 
 const emptyForm = {
@@ -191,8 +192,18 @@ export default function AdminChantiersPage() {
               placeholder="ex. Witteramsdal 93, Asse"
             />
           </div>
+          <div className="sm:col-span-2">
+            <label className="mb-1 block text-sm font-medium text-slate-700">Emplacement du chantier (zone de pointage)</label>
+            <ChantierLocationPicker
+              adresse={form.adresse}
+              latitude={form.latitude}
+              longitude={form.longitude}
+              rayonMetres={Number(form.rayon_metres) || 200}
+              onChange={(lat, lng) => setForm((f) => ({ ...f, latitude: lat.toFixed(6), longitude: lng.toFixed(6) }))}
+            />
+          </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Latitude (optionnel)</label>
+            <label className="mb-1 block text-sm font-medium text-slate-700">Latitude (rempli automatiquement)</label>
             <input
               value={form.latitude}
               onChange={(e) => setForm({ ...form, latitude: e.target.value })}
@@ -201,7 +212,7 @@ export default function AdminChantiersPage() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Longitude (optionnel)</label>
+            <label className="mb-1 block text-sm font-medium text-slate-700">Longitude (rempli automatiquement)</label>
             <input
               value={form.longitude}
               onChange={(e) => setForm({ ...form, longitude: e.target.value })}
