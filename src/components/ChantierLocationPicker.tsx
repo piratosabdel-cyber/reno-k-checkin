@@ -52,13 +52,19 @@ export default function ChantierLocationPicker({
   latitude,
   longitude,
   rayonMetres,
+  confirmee,
+  declencheurRecherche,
   onChange,
+  onConfirmer,
 }: {
   adresse: string
   latitude: string
   longitude: string
   rayonMetres: number
+  confirmee: boolean
+  declencheurRecherche: number
   onChange: (lat: number, lng: number) => void
+  onConfirmer: () => void
 }) {
   const [propositions, setPropositions] = useState<Proposition[]>([])
   const [recherche, setRecherche] = useState(false)
@@ -67,6 +73,10 @@ export default function ChantierLocationPicker({
   const lat = Number(latitude)
   const lng = Number(longitude)
   const position: [number, number] | null = latitude && longitude && !isNaN(lat) && !isNaN(lng) ? [lat, lng] : null
+
+  useEffect(() => {
+    if (declencheurRecherche > 0) chercher()
+  }, [declencheurRecherche]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function chercher() {
     if (!adresse.trim()) {
@@ -107,8 +117,22 @@ export default function ChantierLocationPicker({
         >
           {recherche ? 'Recherche...' : '🔍 Chercher l\'adresse sur la carte'}
         </button>
+        {position && !confirmee && (
+          <button
+            type="button"
+            onClick={onConfirmer}
+            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+          >
+            ✓ Confirmer cet emplacement
+          </button>
+        )}
+        {position && confirmee && (
+          <span className="rounded-full bg-emerald-100 px-3 py-1 text-sm font-medium text-emerald-700">
+            ✓ Emplacement confirmé
+          </span>
+        )}
         <span className="text-xs text-slate-500">
-          Puis clique sur la carte ou fais glisser le point orange pour corriger l'emplacement exact.
+          Clique sur la carte ou fais glisser le point orange pour corriger l'emplacement exact, puis confirme.
         </span>
       </div>
 

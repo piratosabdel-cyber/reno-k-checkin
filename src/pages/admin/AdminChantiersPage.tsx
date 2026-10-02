@@ -14,6 +14,7 @@ const emptyForm = {
   mode_hors_zone: 'justifier' as 'justifier' | 'bloquer',
   date_debut: '',
   date_fin: '',
+  positionConfirmee: false,
 }
 
 export default function AdminChantiersPage() {
@@ -26,6 +27,8 @@ export default function AdminChantiersPage() {
   const [saving, setSaving] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [filtreStatut, setFiltreStatut] = useState<'actif' | 'archive' | 'tous'>('actif')
+  const [erreurForm, setErreurForm] = useState<string | null>(null)
+  const [declencheurRecherche, setDeclencheurRecherche] = useState(0)
 
   async function load() {
     setLoading(true)
@@ -61,15 +64,26 @@ export default function AdminChantiersPage() {
         mode_hors_zone: c.mode_hors_zone,
         date_debut: c.date_debut ?? '',
         date_fin: c.date_fin ?? '',
+        positionConfirmee: c.latitude != null && c.longitude != null,
       })
     } else {
       setForm(emptyForm)
     }
+    setErreurForm(null)
     setShowForm(true)
   }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
+    if (!form.latitude || !form.longitude) {
+      setErreurForm("Place d'abord le point du chantier sur la carte (cherche l'adresse ou clique sur la carte).")
+      return
+    }
+    if (!form.positionConfirmee) {
+      setErreurForm('Vérifie le point orange sur la carte puis clique sur "Confirmer cet emplacement".')
+      return
+    }
+    setErreurForm(null)
     setSaving(true)
 
     const payload = {
@@ -187,10 +201,12 @@ export default function AdminChantiersPage() {
             <input
               required
               value={form.adresse}
-              onChange={(e) => setForm({ ...form, adresse: e.target.value })}
+              onChange={(e) => setForm({ ...form, adresse: e.target.value, positionConfirmee: false })}
+              onBlur={() => form.adresse.trim() && !form.positionConfirmee && setDeclencheurRecherche((n) => n + 1)}
               className="w-full rounded-lg border border-slate-300 px-3 py-2"
               placeholder="ex. Witteramsdal 93, Asse"
             />
+            <p className="mt-1 text-xs text-slate-400">La recherche sur la carte se lance toute seule quand tu quittes ce champ.</p>
           </div>
           <div className="sm:col-span-2">
             <label className="mb-1 block text-sm font-medium text-slate-700">Emplacement du chantier (zone de pointage)</label>
@@ -199,14 +215,22 @@ export default function AdminChantiersPage() {
               latitude={form.latitude}
               longitude={form.longitude}
               rayonMetres={Number(form.rayon_metres) || 200}
-              onChange={(lat, lng) => setForm((f) => ({ ...f, latitude: lat.toFixed(6), longitude: lng.toFixed(6) }))}
+              confirmee={form.positionConfirmee}
+              declencheurRecherche={declencheurRecherche}
+              onChange={(lat, lng) =>
+                setForm((f) => ({ ...f, latitude: lat.toFixed(6), longitude: lng.toFixed(6), positionConfirmee: false }))
+              }
+              onConfirmer={() => {
+                setForm((f) => ({ ...f, positionConfirmee: true }))
+                setErreurForm(null)
+              }}
             />
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700">Latitude (rempli automatiquement)</label>
             <input
               value={form.latitude}
-              onChange={(e) => setForm({ ...form, latitude: e.target.value })}
+              onChange={(e) => setForm({ ...form, latitude: e.target.value, positionConfirmee: false })}
               className="w-full rounded-lg border border-slate-300 px-3 py-2"
               placeholder="50.9048"
             />
@@ -215,7 +239,7 @@ export default function AdminChantiersPage() {
             <label className="mb-1 block text-sm font-medium text-slate-700">Longitude (rempli automatiquement)</label>
             <input
               value={form.longitude}
-              onChange={(e) => setForm({ ...form, longitude: e.target.value })}
+              onChange={(e) => setForm({ ...form, longitude: e.target.value, positionConfirmee: false })}
               className="w-full rounded-lg border border-slate-300 px-3 py-2"
               placeholder="4.1938"
             />
@@ -273,12 +297,15 @@ export default function AdminChantiersPage() {
             />
           </div>
 
+          {erreurForm && (
+            <p className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800 sm:col-span-2">⚠ {erreurForm}</p>
+          )}
           <button
             type="submit"
             disabled={saving}
             className="rounded-lg bg-emerald-600 px-4 py-2 font-medium text-white hover:bg-emerald-700 disabled:opacity-50 sm:col-span-2"
           >
-            {saving ? 'Enregistrement...' : 'Enregistrer'}
+            {saving ? 'Enregistrement...' : form.positionConfirmee ? 'Enregistrer' : 'Enregistrer (emplacement à confirmer)'}
           </button>
         </form>
       )}
