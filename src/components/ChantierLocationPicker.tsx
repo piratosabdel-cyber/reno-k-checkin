@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { MapContainer, TileLayer, Marker, Circle, useMap, useMapEvents } from 'react-leaflet'
-import { divIcon, type LeafletEvent, type Marker as LeafletMarker } from 'leaflet'
+import { divIcon, latLngBounds, type LeafletEvent, type Marker as LeafletMarker } from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 
 const CENTRE_BELGIQUE: [number, number] = [50.85, 4.35]
@@ -12,33 +12,70 @@ const ICONE_CHANTIER = divIcon({
   iconAnchor: [11, 11],
 })
 
-interface Proposition {
+type Precision = 'exacte' | 'rue' | 'zone'
+
+interface Resultat {
   id: number
   libelle: string
   lat: number
   lng: number
+  precision: Precision
+  bbox: [[number, number], [number, number]] // [[sud, ouest], [nord, est]]
 }
 
-async function geocoder(adresse: string): Promise<Proposition[]> {
+interface ReponseNominatim {
+  place_id: number
+  display_name: string
+  lat: string
+  lon: string
+  addresstype?: string
+  boundingbox: [string, string, string, string] // sud, nord, ouest, est
+  address?: { house_number?: string; road?: string }
+}
+
+function classer(r: ReponseNominatim): Precision {
+  if (r.address?.house_number) return 'exacte'
+  if (r.addresstype === 'road') return 'rue'
+  return 'zone'
+}
+
+async function geocoder(adresse: string): Promise<Resultat[]> {
   const url = new URL('https://nominatim.openstreetmap.org/search')
   url.searchParams.set('format', 'jsonv2')
   url.searchParams.set('q', adresse)
   url.searchParams.set('countrycodes', 'be')
   url.searchParams.set('limit', '5')
+  url.searchParams.set('addressdetails', '1')
   const res = await fetch(url, { headers: { Accept: 'application/json' } })
   if (!res.ok) throw new Error('Service de recherche indisponible')
-  const data: { place_id: number; display_name: string; lat: string; lon: string }[] = await res.json()
-  return data.map((r) => ({ id: r.place_id, libelle: r.display_name, lat: Number(r.lat), lng: Number(r.lon) }))
+  const data: ReponseNominatim[] = await res.json()
+  return data.map((r) => {
+    const [s, n, o, e] = r.boundingbox.map(Number)
+    return {
+      id: r.place_id,
+      libelle: r.display_name,
+      lat: Number(r.lat),
+      lng: Number(r.lon),
+      precision: classer(r),
+      bbox: [
+        [s, o],
+        [n, e],
+      ],
+    }
+  })
 }
 
-function RecentrerSur({ position }: { position: [number, number] | null }) {
+function Recentrer({ position, zone }: { position: [number, number] | null; zone: Resultat | null }) {
   const map = useMap()
-  const cle = position ? `${position[0]},${position[1]}` : ''
+  const clePosition = position ? `${position[0]},${position[1]}` : ''
   useEffect(() => {
-    if (!cle) return
-    const [lat, lng] = cle.split(',').map(Number)
-    map.flyTo([lat, lng], Math.max(map.getZoom(), 16), { duration: 0.6 })
-  }, [map, cle])
+    if (!clePosition) return
+    const [lat, lng] = clePosition.split(',').map(Number)
+    map.flyTo([lat, lng], Math.max(map.getZoom(), 17), { duration: 0.6 })
+  }, [map, clePosition])
+  useEffect(() => {
+    if (zone) map.fitBounds(latLngBounds(zone.bbox), { padding: [20, 20], maxZoom: 17 })
+  }, [map, zone])
   return null
 }
 
@@ -66,9 +103,10 @@ export default function ChantierLocationPicker({
   onChange: (lat: number, lng: number) => void
   onConfirmer: () => void
 }) {
-  const [propositions, setPropositions] = useState<Proposition[]>([])
+  const [propositions, setPropositions] = useState<Resultat[]>([])
+  const [zone, setZone] = useState<Resultat | null>(null)
   const [recherche, setRecherche] = useState(false)
-  const [erreur, setErreur] = useState<string | null>(null)
+  const [message, setMessage] = useState<{ texte: string; ton: 'info' | 'alerte' } | null>(null)
 
   const lat = Number(latitude)
   const lng = Number(longitude)
@@ -80,30 +118,55 @@ export default function ChantierLocationPicker({
 
   async function chercher() {
     if (!adresse.trim()) {
-      setErreur("Tape d'abord l'adresse du chantier ci-dessus.")
+      setMessage({ texte: "Tape d'abord l'adresse du chantier ci-dessus.", ton: 'alerte' })
       return
     }
     setRecherche(true)
-    setErreur(null)
+    setMessage(null)
     setPropositions([])
+    setZone(null)
     try {
       const resultats = await geocoder(adresse)
-      if (resultats.length === 0) {
-        setErreur('Aucune adresse trouvée. Essaie avec "rue numéro, commune" ou place le point à la main sur la carte.')
+      const exactes = resultats.filter((r) => r.precision === 'exacte')
+
+      if (exactes.length === 1) {
+        onChange(exactes[0].lat, exactes[0].lng)
+        setMessage({ texte: 'Adresse trouvée. Vérifie le point orange, ajuste-le si besoin, puis confirme.', ton: 'info' })
+      } else if (exactes.length > 1) {
+        setPropositions(exactes)
+      } else if (resultats.length === 0) {
+        setMessage({
+          texte:
+            "Adresse introuvable : aucun point placé. Vérifie l'orthographe de la rue et de la commune, ou tape seulement la commune pour afficher la zone et placer le point à la main.",
+          ton: 'alerte',
+        })
       } else {
-        setPropositions(resultats)
-        if (resultats.length === 1) onChange(resultats[0].lat, resultats[0].lng)
+        const approx = resultats[0]
+        setZone(approx)
+        setMessage({
+          texte:
+            approx.precision === 'rue'
+              ? "Rue trouvée mais pas ce numéro : aucun point placé. La carte est centrée sur la rue — zoome et clique sur la bonne maison."
+              : "Rue non reconnue : aucun point placé. La carte est centrée sur la commune — zoome et clique sur l'emplacement exact, ou corrige l'adresse.",
+          ton: 'alerte',
+        })
       }
     } catch {
-      setErreur('Recherche impossible pour le moment. Tu peux placer le point à la main sur la carte.')
+      setMessage({ texte: 'Recherche impossible pour le moment. Tu peux placer le point à la main sur la carte.', ton: 'alerte' })
     } finally {
       setRecherche(false)
     }
   }
 
-  function choisir(p: Proposition) {
-    onChange(p.lat, p.lng)
+  function choisir(r: Resultat) {
+    onChange(r.lat, r.lng)
     setPropositions([])
+    setMessage({ texte: 'Vérifie le point orange, ajuste-le si besoin, puis confirme.', ton: 'info' })
+  }
+
+  function placer(lat: number, lng: number) {
+    setZone(null)
+    onChange(lat, lng)
   }
 
   return (
@@ -115,7 +178,7 @@ export default function ChantierLocationPicker({
           disabled={recherche}
           className="rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
         >
-          {recherche ? 'Recherche...' : '🔍 Chercher l\'adresse sur la carte'}
+          {recherche ? 'Recherche...' : "🔍 Chercher l'adresse sur la carte"}
         </button>
         {position && !confirmee && (
           <button
@@ -136,7 +199,16 @@ export default function ChantierLocationPicker({
         </span>
       </div>
 
-      {erreur && <p className="text-sm text-amber-700">{erreur}</p>}
+      {message && (
+        <p
+          className={`rounded-lg px-3 py-2 text-sm ${
+            message.ton === 'alerte' ? 'bg-amber-50 text-amber-800' : 'bg-emerald-50 text-emerald-800'
+          }`}
+        >
+          {message.ton === 'alerte' ? '⚠ ' : ''}
+          {message.texte}
+        </p>
+      )}
 
       {propositions.length > 1 && (
         <div className="rounded-lg border border-slate-200 bg-slate-50">
@@ -160,13 +232,13 @@ export default function ChantierLocationPicker({
       )}
 
       <div className="overflow-hidden rounded-lg border border-slate-200">
-        <MapContainer center={position ?? CENTRE_BELGIQUE} zoom={position ? 16 : 9} style={{ height: '320px', width: '100%' }}>
+        <MapContainer center={position ?? CENTRE_BELGIQUE} zoom={position ? 17 : 9} style={{ height: '320px', width: '100%' }}>
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-          <RecentrerSur position={position} />
-          <ClicSurCarte onClic={onChange} />
+          <Recentrer position={position} zone={zone} />
+          <ClicSurCarte onClic={placer} />
           {position && (
             <>
               <Marker
@@ -189,7 +261,7 @@ export default function ChantierLocationPicker({
           )}
         </MapContainer>
       </div>
-      {!position && (
+      {!position && !message && (
         <p className="text-xs text-slate-400">Aucun point placé : cherche l'adresse ou clique directement sur la carte.</p>
       )}
     </div>
