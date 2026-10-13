@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
-import { distanceMetres, getCurrentPosition } from '../../lib/geo'
+import { distanceMetres, getCurrentPosition, messageGeoErreur } from '../../lib/geo'
 import { ajouterALaFile, listerFile } from '../../lib/offlineQueue'
 import { synchroniser } from '../../lib/sync'
 import ProposerChantierForm from '../../components/ProposerChantierForm'
@@ -61,7 +61,7 @@ export default function CheckInPage() {
     | { etat: 'recherche' }
     | { etat: 'trouve'; chantier: Chantier; distance: number }
     | { etat: 'aucun' }
-    | { etat: 'erreur' }
+    | { etat: 'erreur'; raison: string }
   >({ etat: 'recherche' })
   const [chantierConfirme, setChantierConfirme] = useState(false)
   const [choixManuel, setChoixManuel] = useState(false)
@@ -195,8 +195,8 @@ export default function CheckInPage() {
       } else {
         setDetection({ etat: 'aucun' })
       }
-    } catch {
-      setDetection({ etat: 'erreur' })
+    } catch (e) {
+      setDetection({ etat: 'erreur', raison: messageGeoErreur(e) })
     }
   }, [chantiers])
 
@@ -370,29 +370,33 @@ export default function CheckInPage() {
 
     const chantier = chantiers.find((c) => c.id === chantierId) ?? tousChantiers.find((c) => c.id === chantierId)
 
-    let lat: number | null = null
-    let lng: number | null = null
-    let precision: number | null = null
-    let distance: number | null = null
-    let hors_zone = false
-    let gpsOk = true
-
-    try {
-      const pos = await getCurrentPosition()
-      lat = pos.lat
-      lng = pos.lng
-      precision = pos.accuracy
-      if (chantier?.latitude != null && chantier?.longitude != null) {
-        distance = Math.round(distanceMetres(lat, lng, chantier.latitude, chantier.longitude))
-        hors_zone = distance > chantier.rayon_metres
-      }
-    } catch {
-      gpsOk = false
+    if (!chantier || chantier.latitude == null || chantier.longitude == null) {
+      setWorking(false)
+      setMessage({
+        type: 'error',
+        text: "Ce chantier n'a pas de position enregistrée : pointage impossible. Préviens ton responsable.",
+      })
+      return
     }
 
-    // Arrivée : uniquement dans la zone du chantier. Sans GPS, on accepte mais
-    // le pointage est marqué "sans position" pour l'admin.
-    if (type === 'arrivee' && gpsOk && hors_zone && chantier) {
+    // Aucun pointage sans position GPS : impossible de vérifier la zone.
+    let pos
+    try {
+      pos = await getCurrentPosition()
+    } catch (e) {
+      setWorking(false)
+      setMessage({ type: 'error', text: `Pointage impossible sans position. ${messageGeoErreur(e)}` })
+      return
+    }
+
+    const lat = pos.lat
+    const lng = pos.lng
+    const precision = pos.accuracy
+    const distance = Math.round(distanceMetres(lat, lng, chantier.latitude, chantier.longitude))
+    const hors_zone = distance > chantier.rayon_metres
+
+    // Arrivée : uniquement dans la zone du chantier.
+    if (type === 'arrivee' && hors_zone) {
       setWorking(false)
       setMessage({
         type: 'error',
@@ -563,7 +567,9 @@ export default function CheckInPage() {
               chantiers.length === 0 ? (
               <>
                 {!choixManuel && detection.etat === 'erreur' && chantiers.length > 0 && (
-                  <p className="mb-2 text-sm text-amber-700">Position GPS non disponible — choisis ton chantier.</p>
+                  <p className="mb-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+                    ⚠ Position non disponible — sans position, le pointage sera refusé. {detection.raison}
+                  </p>
                 )}
                 {!choixManuel && detection.etat === 'aucun' && chantiers.length > 0 && (
                   <p className="mb-2 text-sm text-amber-700">
@@ -591,7 +597,7 @@ export default function CheckInPage() {
                     }}
                     className="flex-1 rounded-xl border border-slate-300 py-3 text-sm font-semibold text-slate-600"
                   >
-                    🔄 Détecter
+                    🔄 Réessayer la position
                   </button>
                   <button
                     onClick={() => setChantierConfirme(true)}
