@@ -370,39 +370,24 @@ export default function CheckInPage() {
 
     const chantier = chantiers.find((c) => c.id === chantierId) ?? tousChantiers.find((c) => c.id === chantierId)
 
-    if (!chantier || chantier.latitude == null || chantier.longitude == null) {
-      setWorking(false)
-      setMessage({
-        type: 'error',
-        text: "Ce chantier n'a pas de position enregistrée : pointage impossible. Préviens ton responsable.",
-      })
-      return
-    }
-
-    // Aucun pointage sans position GPS : impossible de vérifier la zone.
-    let pos
+    // Le pointage est toujours accepté : sans position il est marqué "sans
+    // position", hors du rayon il est marqué "hors zone" — l'admin voit les deux.
+    let lat: number | null = null
+    let lng: number | null = null
+    let precision: number | null = null
+    let distance: number | null = null
+    let hors_zone = false
     try {
-      pos = await getCurrentPosition()
-    } catch (e) {
-      setWorking(false)
-      setMessage({ type: 'error', text: `Pointage impossible sans position. ${messageGeoErreur(e)}` })
-      return
-    }
-
-    const lat = pos.lat
-    const lng = pos.lng
-    const precision = pos.accuracy
-    const distance = Math.round(distanceMetres(lat, lng, chantier.latitude, chantier.longitude))
-    const hors_zone = distance > chantier.rayon_metres
-
-    // Arrivée : uniquement dans la zone du chantier.
-    if (type === 'arrivee' && hors_zone) {
-      setWorking(false)
-      setMessage({
-        type: 'error',
-        text: `Arrivée refusée : tu es à ${distance} m de ${chantier.nom} (zone autorisée : ${chantier.rayon_metres} m). Rapproche-toi du chantier et réessaie.`,
-      })
-      return
+      const pos = await getCurrentPosition()
+      lat = pos.lat
+      lng = pos.lng
+      precision = pos.accuracy
+      if (chantier?.latitude != null && chantier?.longitude != null) {
+        distance = Math.round(distanceMetres(lat, lng, chantier.latitude, chantier.longitude))
+        hors_zone = distance > chantier.rayon_metres
+      }
+    } catch {
+      // position indisponible : on enregistre quand même, sans coordonnées
     }
 
     await enregistrerPointage(type, lat, lng, precision, distance, hors_zone)
@@ -568,7 +553,7 @@ export default function CheckInPage() {
               <>
                 {!choixManuel && detection.etat === 'erreur' && chantiers.length > 0 && (
                   <p className="mb-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
-                    ⚠ Position non disponible — sans position, le pointage sera refusé. {detection.raison}
+                    ⚠ Position non disponible — choisis ton chantier dans la liste. {detection.raison}
                   </p>
                 )}
                 {!choixManuel && detection.etat === 'aucun' && chantiers.length > 0 && (
@@ -652,11 +637,6 @@ export default function CheckInPage() {
                 >
                   {working ? '...' : LABELS[typeSuivant].toUpperCase()}
                 </button>
-                {typeSuivant === 'arrivee' && (
-                  <p className="text-center text-xs text-slate-400">
-                    L'arrivée n'est acceptée que dans la zone du chantier.
-                  </p>
-                )}
               </div>
             )}
 
