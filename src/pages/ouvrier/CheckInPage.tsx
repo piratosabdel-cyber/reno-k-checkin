@@ -23,6 +23,9 @@ const COULEURS: Record<TypePointage, string> = {
 
 type PointageAffichage = Pointage & { enAttente?: boolean }
 
+/** Au-delà de cette distance du chantier le plus proche, on ne propose rien : l'ouvrier choisit dans la liste. */
+const DISTANCE_DETECTION_M = 2000
+
 function startOfToday() {
   const d = new Date()
   d.setHours(0, 0, 0, 0)
@@ -59,6 +62,16 @@ export default function CheckInPage() {
   const [appActive, setAppActive] = useState<boolean | null>(null)
   const [proposer, setProposer] = useState(false)
   const [mesPropositions, setMesPropositions] = useState<Chantier[]>([])
+
+  // Détection automatique du chantier le plus proche (GPS) — l'ouvrier doit confirmer.
+  const [detection, setDetection] = useState<
+    | { etat: 'recherche' }
+    | { etat: 'trouve'; chantier: Chantier; distance: number }
+    | { etat: 'aucun' }
+    | { etat: 'erreur' }
+  >({ etat: 'recherche' })
+  const [chantierConfirme, setChantierConfirme] = useState(false)
+  const [choixManuel, setChoixManuel] = useState(false)
 
   const [justificationRequise, setJustificationRequise] = useState<{
     type: TypePointage
@@ -149,6 +162,37 @@ export default function CheckInPage() {
   useEffect(() => {
     loadData()
   }, [loadData])
+
+  const detecterChantier = useCallback(async () => {
+    const candidats = chantiers.filter((c) => c.latitude != null && c.longitude != null)
+    if (candidats.length === 0) {
+      setDetection({ etat: 'aucun' })
+      return
+    }
+    setDetection({ etat: 'recherche' })
+    try {
+      const pos = await getCurrentPosition()
+      let meilleur: { chantier: Chantier; distance: number } | null = null
+      for (const c of candidats) {
+        const distance = Math.round(distanceMetres(pos.lat, pos.lng, c.latitude!, c.longitude!))
+        if (!meilleur || distance < meilleur.distance) meilleur = { chantier: c, distance }
+      }
+      if (meilleur && meilleur.distance <= DISTANCE_DETECTION_M) {
+        setDetection({ etat: 'trouve', ...meilleur })
+        setChantierId(meilleur.chantier.id)
+      } else {
+        setDetection({ etat: 'aucun' })
+      }
+    } catch {
+      setDetection({ etat: 'erreur' })
+    }
+  }, [chantiers])
+
+  // Lance la détection une fois la liste des chantiers connue.
+  const nbChantiers = chantiers.length
+  useEffect(() => {
+    if (!loading && nbChantiers > 0 && !chantierConfirme) detecterChantier()
+  }, [loading, nbChantiers]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     // Si hors ligne, on ne bloque pas (on ne peut pas vérifier) — l'app
@@ -457,35 +501,119 @@ export default function CheckInPage() {
             </>
           ) : (
             <>
-              <label htmlFor="chantier" className="mb-2 block text-lg font-semibold text-slate-800">
-                Chantier
-              </label>
-              <select
-                id="chantier"
-                value={chantierId}
-                onChange={(e) => setChantierId(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 px-4 py-4 text-lg focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200"
-              >
-                {chantiers.length === 0 && <option value="">Aucun chantier actif</option>}
-                {chantiers.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.nom}
-                  </option>
-                ))}
-              </select>
+              <p className="mb-2 text-lg font-semibold text-slate-800">Chantier</p>
 
-              <div className="mt-6 grid gap-3">
-                {options.map((type) => (
+              {chantierConfirme ? (
+                <div className="flex items-center justify-between gap-3 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-lg font-bold text-emerald-900">
+                      📍 {chantiers.find((c) => c.id === chantierId)?.nom}
+                    </p>
+                    <p className="truncate text-xs text-emerald-700">
+                      {chantiers.find((c) => c.id === chantierId)?.adresse}
+                    </p>
+                  </div>
                   <button
-                    key={type}
-                    onClick={() => handlePointer(type)}
-                    disabled={working || !chantierId}
-                    className={`w-full rounded-2xl py-6 text-2xl font-bold text-white shadow disabled:opacity-50 ${COULEURS[type]}`}
+                    onClick={() => {
+                      setChantierConfirme(false)
+                      setChoixManuel(true)
+                    }}
+                    className="shrink-0 text-sm text-emerald-700 underline"
                   >
-                    {working ? '...' : LABELS[type].toUpperCase()}
+                    Changer
                   </button>
-                ))}
-              </div>
+                </div>
+              ) : choixManuel || detection.etat === 'aucun' || detection.etat === 'erreur' || chantiers.length === 0 ? (
+                <>
+                  {!choixManuel && detection.etat !== 'aucun' && chantiers.length > 0 && (
+                    <p className="mb-2 text-sm text-amber-700">Position GPS non disponible — choisis ton chantier.</p>
+                  )}
+                  {!choixManuel && detection.etat === 'aucun' && chantiers.length > 0 && (
+                    <p className="mb-2 text-sm text-amber-700">
+                      Aucun chantier détecté à moins de {DISTANCE_DETECTION_M / 1000} km — choisis-le dans la liste.
+                    </p>
+                  )}
+                  <select
+                    id="chantier"
+                    value={chantierId}
+                    onChange={(e) => setChantierId(e.target.value)}
+                    className="w-full rounded-xl border border-slate-300 px-4 py-4 text-lg focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200"
+                  >
+                    {chantiers.length === 0 && <option value="">Aucun chantier actif</option>}
+                    {chantiers.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.nom}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="mt-3 flex gap-3">
+                    <button
+                      onClick={() => {
+                        setChoixManuel(false)
+                        detecterChantier()
+                      }}
+                      className="flex-1 rounded-xl border border-slate-300 py-3 text-sm font-semibold text-slate-600"
+                    >
+                      🔄 Détecter
+                    </button>
+                    <button
+                      onClick={() => setChantierConfirme(true)}
+                      disabled={!chantierId}
+                      className="flex-1 rounded-xl bg-slate-800 py-3 font-semibold text-white disabled:opacity-50"
+                    >
+                      ✓ Confirmer
+                    </button>
+                  </div>
+                </>
+              ) : detection.etat === 'recherche' ? (
+                <div className="rounded-xl bg-slate-50 px-4 py-6 text-center text-slate-500">
+                  📡 Recherche de ta position...
+                  <button onClick={() => setChoixManuel(true)} className="mt-3 block w-full text-sm underline">
+                    Choisir dans la liste
+                  </button>
+                </div>
+              ) : (
+                <div className="rounded-xl border border-orange-300 bg-orange-50 p-4">
+                  <p className="text-sm text-orange-700">
+                    Tu es à <strong>{detection.distance} m</strong> de :
+                  </p>
+                  <p className="mt-1 text-xl font-bold text-slate-900">{detection.chantier.nom}</p>
+                  <p className="text-sm text-slate-600">{detection.chantier.adresse}</p>
+                  <p className="mt-3 text-base font-semibold text-slate-800">C'est bien ici ?</p>
+                  <div className="mt-3 grid gap-2">
+                    <button
+                      onClick={() => {
+                        setChantierId(detection.chantier.id)
+                        setChantierConfirme(true)
+                      }}
+                      className="w-full rounded-xl bg-orange-600 py-4 text-lg font-bold text-white active:bg-orange-700"
+                    >
+                      ✓ Oui, je suis ici
+                    </button>
+                    <button
+                      onClick={() => setChoixManuel(true)}
+                      className="w-full rounded-xl border border-slate-300 py-3 text-sm font-semibold text-slate-600"
+                    >
+                      Non, choisir un autre chantier
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {chantierConfirme && (
+                <div className="mt-6 grid gap-3">
+                  {options.map((type) => (
+                    <button
+                      key={type}
+                      onClick={() => handlePointer(type)}
+                      disabled={working || !chantierId}
+                      className={`w-full rounded-2xl py-6 text-2xl font-bold text-white shadow disabled:opacity-50 ${COULEURS[type]}`}
+                    >
+                      {working ? '...' : LABELS[type].toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+              )}
 
               <button
                 onClick={() => {
