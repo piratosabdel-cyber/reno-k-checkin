@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '../../lib/supabase'
 import PointagesMap from '../../components/PointagesMap'
+import LieuLabel from '../../components/LieuLabel'
 import type { PointageWithRelations, Profile, Chantier, TypePointage } from '../../types/database'
 
 const LABELS: Record<TypePointage, string> = {
@@ -186,7 +187,16 @@ export default function AdminDashboardPage() {
                             {s.label}
                           </span>
                           {p.hors_zone && p.distance_chantier_m != null && (
-                            <span className="ml-2 text-xs text-amber-600">({p.distance_chantier_m} m)</span>
+                            <span className="ml-2 text-xs text-amber-600">
+                              ({p.distance_chantier_m} m
+                              {p.latitude != null && p.longitude != null && (
+                                <>
+                                  {' — '}
+                                  <LieuLabel lat={p.latitude} lng={p.longitude} chantiers={chantiers} />
+                                </>
+                              )}
+                              )
+                            </span>
                           )}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
@@ -251,7 +261,16 @@ export default function AdminDashboardPage() {
                           {p.statut === 'accepte' ? 'Accepté' : p.statut === 'hors_zone' ? 'Hors zone' : p.statut}
                         </span>
                         {p.hors_zone && p.distance_chantier_m != null && (
-                          <span className="ml-2 text-xs text-slate-400">({p.distance_chantier_m} m)</span>
+                          <span className="ml-2 text-xs text-slate-500">
+                            ({p.distance_chantier_m} m
+                            {p.latitude != null && p.longitude != null && (
+                              <>
+                                {' — '}
+                                <LieuLabel lat={p.latitude} lng={p.longitude} chantiers={chantiers} />
+                              </>
+                            )}
+                            )
+                          </span>
                         )}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">

@@ -41,6 +41,14 @@ export interface Creneau {
   arriveeHorsZone: boolean
   /** Le check-out (départ) de ce créneau était-il hors de la zone autorisée du chantier ? */
   departHorsZone: boolean
+  arriveePosition: { lat: number; lng: number } | null
+  departPosition: { lat: number; lng: number } | null
+  arriveeDistanceM: number | null
+  departDistanceM: number | null
+}
+
+function positionDe(p: Pointage): { lat: number; lng: number } | null {
+  return p.latitude != null && p.longitude != null ? { lat: p.latitude, lng: p.longitude } : null
 }
 
 /**
@@ -82,6 +90,10 @@ export function calculerCreneaux(pointagesTries: Pointage[]): Creneau[] {
         dureeMs: Math.max(0, dureeMs),
         arriveeHorsZone: arrivee.hors_zone,
         departHorsZone: p.hors_zone,
+        arriveePosition: positionDe(arrivee),
+        departPosition: positionDe(p),
+        arriveeDistanceM: arrivee.distance_chantier_m,
+        departDistanceM: p.distance_chantier_m,
       })
       arrivee = null
       pauseMs = 0

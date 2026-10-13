@@ -2,6 +2,7 @@ import { Fragment, useEffect, useState } from 'react'
 import { useParams, useSearchParams, Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { construireResumeOuvrier, formatHeures, type CreneauAvecDeplacement } from '../../lib/heures'
+import LieuLabel from '../../components/LieuLabel'
 import type { Chantier, Pointage, Profile } from '../../types/database'
 
 export default function FicheHeuresPage() {
@@ -45,6 +46,7 @@ export default function FicheHeuresPage() {
   }
 
   const resume = construireResumeOuvrier(ouvrier.id, ouvrier.full_name, pointages, chantiersMap)
+  const listeChantiers = [...chantiersMap.values()]
 
   const parJour = new Map<string, CreneauAvecDeplacement[]>()
   for (const c of resume.creneaux) {
@@ -110,13 +112,31 @@ export default function FicheHeuresPage() {
                       <td className="py-2 pr-2 text-slate-700">
                         {new Date(c.debut).toLocaleTimeString('fr-BE', { hour: '2-digit', minute: '2-digit' })}
                         {c.arriveeHorsZone && (
-                          <span className="ml-1 text-xs font-medium text-amber-600">(hors zone)</span>
+                          <span className="block text-xs font-medium text-amber-600">
+                            hors zone
+                            {c.arriveeDistanceM != null && ` (${c.arriveeDistanceM} m)`}
+                            {c.arriveePosition && (
+                              <>
+                                {' — '}
+                                <LieuLabel lat={c.arriveePosition.lat} lng={c.arriveePosition.lng} chantiers={listeChantiers} />
+                              </>
+                            )}
+                          </span>
                         )}
                       </td>
                       <td className="py-2 pr-2 text-slate-700">
                         {new Date(c.fin).toLocaleTimeString('fr-BE', { hour: '2-digit', minute: '2-digit' })}
                         {c.departHorsZone && (
-                          <span className="ml-1 text-xs font-medium text-amber-600">(hors zone)</span>
+                          <span className="block text-xs font-medium text-amber-600">
+                            hors zone
+                            {c.departDistanceM != null && ` (${c.departDistanceM} m)`}
+                            {c.departPosition && (
+                              <>
+                                {' — '}
+                                <LieuLabel lat={c.departPosition.lat} lng={c.departPosition.lng} chantiers={listeChantiers} />
+                              </>
+                            )}
+                          </span>
                         )}
                       </td>
                       <td className="py-2 pr-2 text-right text-slate-700">{formatHeures(c.dureeMs)}</td>

@@ -1,7 +1,8 @@
 import { Fragment, useEffect, useState, type FormEvent } from 'react'
 import { supabase } from '../../lib/supabase'
 import { adminAuthClient, generatePassword } from '../../lib/adminAuthClient'
-import type { Profile, PointageWithRelations, TypePointage } from '../../types/database'
+import type { Chantier, Profile, PointageWithRelations, TypePointage } from '../../types/database'
+import LieuLabel from '../../components/LieuLabel'
 
 const LABELS_TYPE: Record<TypePointage, string> = {
   arrivee: 'Arrivée',
@@ -33,14 +34,16 @@ export default function AdminOuvriersPage() {
   const [resetPasswordValue, setResetPasswordValue] = useState('')
   const [filtreStatut, setFiltreStatut] = useState<'tous' | 'actif' | 'bloque'>('actif')
 
+  const [chantiersGeo, setChantiersGeo] = useState<Chantier[]>([])
+
   async function load() {
     setLoading(true)
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('role', 'ouvrier')
-      .order('full_name')
+    const [{ data }, { data: chantiers }] = await Promise.all([
+      supabase.from('profiles').select('*').eq('role', 'ouvrier').order('full_name'),
+      supabase.from('chantiers').select('*'),
+    ])
     setOuvriers((data as Profile[]) ?? [])
+    setChantiersGeo((chantiers as Chantier[]) ?? [])
     setLoading(false)
   }
 
@@ -412,6 +415,13 @@ export default function AdminOuvriersPage() {
                                     >
                                       (hors zone)
                                     </button>
+                                    {p.latitude != null && p.longitude != null && (
+                                      <span className="text-sm text-amber-700">
+                                        {' '}
+                                        {p.distance_chantier_m != null && `${p.distance_chantier_m} m — `}
+                                        <LieuLabel lat={p.latitude} lng={p.longitude} chantiers={chantiersGeo} />
+                                      </span>
+                                    )}
                                   </>
                                 )}
                                 {justificationOuverteId === p.id && (

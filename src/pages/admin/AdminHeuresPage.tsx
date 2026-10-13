@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { construireResumeOuvrier, formatHeures, type CreneauAvecDeplacement, type ResumeOuvrier } from '../../lib/heures'
+import { lieuConnu } from '../../lib/lieu'
 import type { Chantier, PointageWithRelations } from '../../types/database'
 
 function telechargerCsv(nomFichier: string, header: string[], lignes: (string | number)[][]) {
@@ -92,6 +93,12 @@ export default function AdminHeuresPage() {
     }
   }
 
+  const lieuTexte = (pos: { lat: number; lng: number } | null, distanceM: number | null) => {
+    if (!pos) return ''
+    const lieu = lieuConnu(pos.lat, pos.lng, [...chantiersMap.values()]) ?? `${pos.lat},${pos.lng}`
+    return ` (${distanceM != null ? `${distanceM} m — ` : ''}${lieu})`
+  }
+
   function exporterOuvrier(r: ResumeOuvrierAffiche) {
     const parJour = new Map<string, CreneauAvecDeplacement[]>()
     for (const c of r.creneaux) {
@@ -108,9 +115,9 @@ export default function AdminHeuresPage() {
           new Date(c.debut).toLocaleDateString('fr-BE'),
           nomChantier(c.chantier_id, r.pointages),
           new Date(c.debut).toLocaleTimeString('fr-BE', { hour: '2-digit', minute: '2-digit' }),
-          c.arriveeHorsZone ? 'Hors zone' : '',
+          c.arriveeHorsZone ? `Hors zone${lieuTexte(c.arriveePosition, c.arriveeDistanceM)}` : '',
           new Date(c.fin).toLocaleTimeString('fr-BE', { hour: '2-digit', minute: '2-digit' }),
-          c.departHorsZone ? 'Hors zone' : '',
+          c.departHorsZone ? `Hors zone${lieuTexte(c.departPosition, c.departDistanceM)}` : '',
           formatHeures(c.dureeMs),
           formatHeures(c.deplacementMs),
           formatHeures(c.dureeMs + c.deplacementMs),
