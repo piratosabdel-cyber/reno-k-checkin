@@ -186,8 +186,9 @@ export default function AdminHeuresPage() {
       <div>
         <h1 className="mb-1 text-2xl font-bold text-slate-900">Heures travaillées</h1>
         <p className="mb-4 text-sm text-slate-500">
-          Déplacement payé à l'aller uniquement : 15 min si le chantier est à 15 km ou moins du bureau, 30 min
-          au-delà — sauf si le check-in est hors zone (aucun forfait dans ce cas). Pause de midi déduite
+          Déplacement payé à l'aller uniquement, selon la distance au dépôt le plus proche (Mollem ou Ternat) :
+          rien à 5 km ou moins, 15 min jusqu'à 15 km, 30 min au-delà — sauf si le check-in est hors zone
+          (aucun forfait dans ce cas). Pause de midi déduite
           forfaitairement (30 min/jour), sauf le samedi (pause payée) — affichée séparément, elle n'est jamais
           retirée des heures d'un chantier précis.
         </p>

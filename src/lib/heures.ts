@@ -1,18 +1,33 @@
 import { distanceMetres } from './geo'
 import type { Chantier, Pointage } from '../types/database'
 
-/** Bureau Reno-K — Z.5 Mollem 44, 1730 Asse. Sert de point de référence pour le forfait déplacement. */
-export const BUREAU = { lat: 50.916299, lng: 4.21763 }
+/** Dépôts Reno-K servant de points de référence pour le forfait déplacement. */
+export const DEPOTS = [
+  { nom: 'Dépôt Mollem', adresse: 'Z.5 Mollem 44, 1730 Asse', lat: 50.916299, lng: 4.21763 },
+  { nom: 'Dépôt Ternat', adresse: 'Overnelleweg 15, 1740 Ternat', lat: 50.8848254, lng: 4.1531558 },
+]
+
+/** En deçà de cette distance d'un dépôt, le chantier est "local" : aucun forfait déplacement. */
+export const RAYON_LOCAL_KM = 5
+/** Jusqu'à cette distance du dépôt le plus proche : 15 min ; au-delà : 30 min. */
+export const RAYON_COURT_KM = 15
+
+/** Distance (km) entre un chantier et le dépôt le plus proche. */
+export function distanceDepotKm(chantier: Pick<Chantier, 'latitude' | 'longitude'>): number {
+  return Math.min(...DEPOTS.map((d) => distanceMetres(d.lat, d.lng, chantier.latitude!, chantier.longitude!))) / 1000
+}
 
 /**
- * Forfait déplacement "aller" payé pour un chantier donné, en fonction de sa
- * distance au bureau : 15 min si <= 15 km, 30 min au-delà. Retourne 0 si
- * le chantier n'a pas de coordonnées GPS renseignées (impossible à calculer).
+ * Forfait déplacement "aller" payé pour un chantier donné, selon sa distance
+ * au dépôt le plus proche : 0 si <= 5 km (local), 15 min si <= 15 km, 30 min
+ * au-delà. Retourne 0 si le chantier n'a pas de coordonnées GPS (impossible
+ * à calculer).
  */
 export function tempsDeplacementMs(chantier: Pick<Chantier, 'latitude' | 'longitude'> | undefined | null): number {
   if (!chantier?.latitude || !chantier?.longitude) return 0
-  const distanceKm = distanceMetres(BUREAU.lat, BUREAU.lng, chantier.latitude, chantier.longitude) / 1000
-  const minutes = distanceKm <= 15 ? 15 : 30
+  const distanceKm = distanceDepotKm(chantier)
+  if (distanceKm <= RAYON_LOCAL_KM) return 0
+  const minutes = distanceKm <= RAYON_COURT_KM ? 15 : 30
   return minutes * 60000
 }
 
