@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
 import { getCurrentPosition } from '../lib/geo'
+import { adresseApprox } from '../lib/lieu'
 import ChantierLocationPicker from './ChantierLocationPicker'
 
 export default function ProposerChantierForm({
@@ -34,6 +35,7 @@ export default function ProposerChantierForm({
     try {
       const pos = await getCurrentPosition()
       placer(pos.lat, pos.lng)
+      adresseApprox(pos.lat, pos.lng).then(setAdresse).catch(() => undefined)
     } catch {
       setErreur("Position GPS non disponible. Cherche l'adresse ou clique sur la carte.")
     } finally {
@@ -125,6 +127,7 @@ export default function ProposerChantierForm({
         confirmee={confirmee}
         declencheurRecherche={declencheur}
         onChange={placer}
+        onAdresseTrouvee={setAdresse}
         onConfirmer={() => {
           setConfirmee(true)
           setErreur(null)

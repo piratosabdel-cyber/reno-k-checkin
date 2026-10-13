@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { MapContainer, TileLayer, Marker, Circle, useMap, useMapEvents } from 'react-leaflet'
 import { divIcon, latLngBounds, type LeafletEvent, type Marker as LeafletMarker } from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import { adresseApprox } from '../lib/lieu'
 
 const CENTRE_BELGIQUE: [number, number] = [50.85, 4.35]
 
@@ -93,6 +94,7 @@ export default function ChantierLocationPicker({
   declencheurRecherche,
   onChange,
   onConfirmer,
+  onAdresseTrouvee,
 }: {
   adresse: string
   latitude: string
@@ -102,6 +104,8 @@ export default function ChantierLocationPicker({
   declencheurRecherche: number
   onChange: (lat: number, lng: number) => void
   onConfirmer: () => void
+  /** Appelé avec l'adresse lisible du point quand il est placé à la main (clic, glisser). */
+  onAdresseTrouvee?: (adresse: string) => void
 }) {
   const [propositions, setPropositions] = useState<Resultat[]>([])
   const [zone, setZone] = useState<Resultat | null>(null)
@@ -167,6 +171,14 @@ export default function ChantierLocationPicker({
   function placer(lat: number, lng: number) {
     setZone(null)
     onChange(lat, lng)
+    if (onAdresseTrouvee) {
+      adresseApprox(lat, lng)
+        .then((a) => {
+          onAdresseTrouvee(a)
+          setMessage({ texte: `Adresse remplie d'après le point : ${a}. Vérifie puis confirme.`, ton: 'info' })
+        })
+        .catch(() => undefined)
+    }
   }
 
   return (
@@ -248,7 +260,7 @@ export default function ChantierLocationPicker({
                 eventHandlers={{
                   dragend: (e: LeafletEvent) => {
                     const ll = (e.target as LeafletMarker).getLatLng()
-                    onChange(ll.lat, ll.lng)
+                    placer(ll.lat, ll.lng)
                   },
                 }}
               />

@@ -272,6 +272,7 @@ export default function AdminChantiersPage() {
               onChange={(lat, lng) =>
                 setForm((f) => ({ ...f, latitude: lat.toFixed(6), longitude: lng.toFixed(6), positionConfirmee: false }))
               }
+              onAdresseTrouvee={(adresse) => setForm((f) => ({ ...f, adresse }))}
               onConfirmer={() => {
                 setForm((f) => ({ ...f, positionConfirmee: true }))
                 setErreurForm(null)
