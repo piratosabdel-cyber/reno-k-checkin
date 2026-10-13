@@ -21,7 +21,7 @@ const emptyForm = {
   client: '',
   latitude: '',
   longitude: '',
-  rayon_metres: '200',
+  rayon_metres: '300',
   mode_hors_zone: 'justifier' as 'justifier' | 'bloquer',
   date_debut: '',
   date_fin: '',
@@ -133,7 +133,7 @@ export default function AdminChantiersPage() {
       client: form.client || null,
       latitude: form.latitude ? Number(form.latitude) : null,
       longitude: form.longitude ? Number(form.longitude) : null,
-      rayon_metres: Number(form.rayon_metres) || 200,
+      rayon_metres: Number(form.rayon_metres) || 300,
       mode_hors_zone: form.mode_hors_zone,
       date_debut: form.date_debut || null,
       date_fin: form.date_fin || null,
@@ -266,7 +266,7 @@ export default function AdminChantiersPage() {
               adresse={form.adresse}
               latitude={form.latitude}
               longitude={form.longitude}
-              rayonMetres={Number(form.rayon_metres) || 200}
+              rayonMetres={Number(form.rayon_metres) || 300}
               confirmee={form.positionConfirmee}
               declencheurRecherche={declencheurRecherche}
               onChange={(lat, lng) =>

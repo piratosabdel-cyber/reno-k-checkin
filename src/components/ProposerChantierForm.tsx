@@ -64,6 +64,7 @@ export default function ProposerChantierForm({
       adresse: adresse.trim(),
       latitude: Number(latitude),
       longitude: Number(longitude),
+      rayon_metres: 300,
       statut: 'en_attente',
       propose_par: ouvrierId,
     })
@@ -123,7 +124,7 @@ export default function ProposerChantierForm({
         adresse={adresse}
         latitude={latitude}
         longitude={longitude}
-        rayonMetres={200}
+        rayonMetres={300}
         confirmee={confirmee}
         declencheurRecherche={declencheur}
         onChange={placer}

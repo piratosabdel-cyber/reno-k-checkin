@@ -166,13 +166,11 @@ export default function CheckInPage() {
       null)
     : null
 
-  // Journée en cours : le départ se fait forcément sur le chantier de l'arrivée.
+  // Journée en cours : le chantier de l'arrivée est proposé par défaut pour le départ,
+  // mais l'ouvrier doit le confirmer (ou suivre la détection GPS) comme pour l'arrivée.
   const enCoursUuid = enCours?.client_uuid
   useEffect(() => {
-    if (enCours) {
-      setChantierId(enCours.chantier_id)
-      setChantierConfirme(true)
-    }
+    if (enCours) setChantierId(enCours.chantier_id)
   }, [enCoursUuid]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const detecterChantier = useCallback(async () => {
@@ -203,7 +201,7 @@ export default function CheckInPage() {
   // Lance la détection une fois la liste des chantiers connue (sauf si une journée est en cours).
   const nbChantiers = chantiers.length
   useEffect(() => {
-    if (!loading && nbChantiers > 0 && !chantierConfirme && !enCours) detecterChantier()
+    if (!loading && nbChantiers > 0 && !chantierConfirme) detecterChantier()
   }, [loading, nbChantiers]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Surveillance de la zone tant qu'une arrivée est en cours et que l'appli est à l'écran :
@@ -329,6 +327,8 @@ export default function CheckInPage() {
       await ajouterALaFile(pointage)
       setMessage({ type: 'warning', text: `${LABELS[type]} enregistré hors ligne — sera synchronisé.` })
       setSortieZone(null)
+      setChantierConfirme(false)
+      setChoixManuel(false)
       loadData()
       return
     }
@@ -360,6 +360,8 @@ export default function CheckInPage() {
     }
 
     setSortieZone(null)
+    setChantierConfirme(false)
+    setChoixManuel(false)
     loadData()
   }
 
@@ -519,18 +521,14 @@ export default function CheckInPage() {
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-sm">
             <p className="mb-2 text-lg font-semibold text-slate-800">Chantier</p>
 
-            {enCours && chantierEnCours ? (
-              <div className="rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3">
-                <p className="truncate text-lg font-bold text-emerald-900">📍 {chantierEnCours.nom}</p>
-                <p className="truncate text-xs text-emerald-700">
-                  Arrivée pointée à{' '}
-                  {new Date(enCours.heure_appareil).toLocaleTimeString('fr-BE', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </p>
-              </div>
-            ) : chantierConfirme ? (
+            {enCours && chantierEnCours && (
+              <p className="mb-2 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                Arrivée pointée à{' '}
+                {new Date(enCours.heure_appareil).toLocaleTimeString('fr-BE', { hour: '2-digit', minute: '2-digit' })}{' '}
+                sur <strong>{chantierEnCours.nom}</strong>. Confirme le chantier que tu quittes pour pointer le départ.
+              </p>
+            )}
+            {chantierConfirme ? (
               <div className="flex items-center justify-between gap-3 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3">
                 <div className="min-w-0">
                   <p className="truncate text-lg font-bold text-emerald-900">📍 {chantierSelectionne?.nom}</p>
