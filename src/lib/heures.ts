@@ -8,9 +8,9 @@ export const DEPOTS = [
 ]
 
 /** En deçà de cette distance d'un dépôt, le chantier est "local" : aucun forfait déplacement. */
-export const RAYON_LOCAL_KM = 5
+export const RAYON_LOCAL_KM = 8
 /** Jusqu'à cette distance du dépôt le plus proche : 15 min ; au-delà : 30 min. */
-export const RAYON_COURT_KM = 15
+export const RAYON_COURT_KM = 20
 
 /** Distance (km) entre un chantier et le dépôt le plus proche. */
 export function distanceDepotKm(chantier: Pick<Chantier, 'latitude' | 'longitude'>): number {
@@ -19,7 +19,7 @@ export function distanceDepotKm(chantier: Pick<Chantier, 'latitude' | 'longitude
 
 /**
  * Forfait déplacement "aller" payé pour un chantier donné, selon sa distance
- * au dépôt le plus proche : 0 si <= 5 km (local), 15 min si <= 15 km, 30 min
+ * au dépôt le plus proche : 0 si <= 8 km (local), 15 min si <= 20 km, 30 min
  * au-delà. Retourne 0 si le chantier n'a pas de coordonnées GPS (impossible
  * à calculer).
  */
@@ -167,6 +167,25 @@ export interface ResumeOuvrier {
   totalDeplacementMs: number
   creneaux: CreneauAvecDeplacement[]
   deductions: DeductionPauseMidi[]
+  /** Arrivées jamais suivies d'un départ (hors journée en cours aujourd'hui) : non comptées. */
+  arriveesSansDepart: Pointage[]
+}
+
+export function arriveesSansDepart(pointagesTries: Pointage[]): Pointage[] {
+  const manquants: Pointage[] = []
+  let ouverte: Pointage | null = null
+  for (const p of pointagesTries) {
+    if (p.type === 'arrivee') {
+      if (ouverte) manquants.push(ouverte)
+      ouverte = p
+    } else if (p.type === 'depart') {
+      ouverte = null
+    }
+  }
+  if (ouverte && new Date(ouverte.heure_appareil).toDateString() !== new Date().toDateString()) {
+    manquants.push(ouverte)
+  }
+  return manquants
 }
 
 /**
@@ -203,5 +222,14 @@ export function construireResumeOuvrier(
   const totalPauseMs = deductions.reduce((s, d) => s + d.deductionMs, 0)
   const totalDeplacementMs = creneaux.reduce((s, c) => s + c.deplacementMs, 0)
 
-  return { ouvrierId, nom, totalTravailBrutMs, totalPauseMs, totalDeplacementMs, creneaux, deductions }
+  return {
+    ouvrierId,
+    nom,
+    totalTravailBrutMs,
+    totalPauseMs,
+    totalDeplacementMs,
+    creneaux,
+    deductions,
+    arriveesSansDepart: arriveesSansDepart(pointagesTries),
+  }
 }

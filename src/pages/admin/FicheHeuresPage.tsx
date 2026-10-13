@@ -56,6 +56,13 @@ export default function FicheHeuresPage() {
     parJour.set(jour, arr)
   }
 
+  const jours = [
+    ...new Set([
+      ...parJour.keys(),
+      ...resume.arriveesSansDepart.map((a) => new Date(a.heure_appareil).toDateString()),
+    ]),
+  ].sort((a, b) => new Date(a).getTime() - new Date(b).getTime())
+
   const totalTravailNetMs = resume.totalTravailBrutMs - resume.totalPauseMs
   const totalPayeMs = totalTravailNetMs + resume.totalDeplacementMs
 
@@ -101,7 +108,9 @@ export default function FicheHeuresPage() {
               </tr>
             </thead>
             <tbody>
-              {[...parJour.entries()].map(([jour, creneaux]) => (
+              {jours.map((jour) => {
+                const creneaux = parJour.get(jour) ?? []
+                return (
                 <Fragment key={jour}>
                   {creneaux.map((c, i) => (
                     <tr key={`${jour}-${i}`} className="border-b border-slate-100">
@@ -123,6 +132,7 @@ export default function FicheHeuresPage() {
                             )}
                           </span>
                         )}
+                        {!c.arriveePosition && <span className="block text-xs text-slate-400">sans position</span>}
                       </td>
                       <td className="py-2 pr-2 text-slate-700">
                         {new Date(c.fin).toLocaleTimeString('fr-BE', { hour: '2-digit', minute: '2-digit' })}
@@ -138,6 +148,7 @@ export default function FicheHeuresPage() {
                             )}
                           </span>
                         )}
+                        {!c.departPosition && <span className="block text-xs text-slate-400">sans position</span>}
                       </td>
                       <td className="py-2 pr-2 text-right text-slate-700">{formatHeures(c.dureeMs)}</td>
                       <td className="py-2 pr-2 text-right text-slate-500">{formatHeures(c.deplacementMs)}</td>
@@ -159,8 +170,26 @@ export default function FicheHeuresPage() {
                         <td className="py-2 text-right">-{formatHeures(d.deductionMs)}</td>
                       </tr>
                     ))}
+                  {resume.arriveesSansDepart
+                    .filter((a) => new Date(a.heure_appareil).toDateString() === jour)
+                    .map((a) => (
+                      <tr key={a.id} className="border-b border-slate-100 text-red-600">
+                        <td className="py-2 pr-2">
+                          {creneaux.length === 0 ? new Date(a.heure_appareil).toLocaleDateString('fr-BE') : ''}
+                        </td>
+                        <td className="py-2 pr-2">{nomsChantiers.get(a.chantier_id) ?? '?'}</td>
+                        <td className="py-2 pr-2">
+                          {new Date(a.heure_appareil).toLocaleTimeString('fr-BE', { hour: '2-digit', minute: '2-digit' })}
+                        </td>
+                        <td className="py-2 pr-2 font-medium">⚠ départ manquant — non compté</td>
+                        <td className="py-2 pr-2 text-right">—</td>
+                        <td className="py-2 pr-2" />
+                        <td className="py-2 text-right">—</td>
+                      </tr>
+                    ))}
                 </Fragment>
-              ))}
+                )
+              })}
               {resume.creneaux.length === 0 && (
                 <tr>
                   <td colSpan={7} className="py-6 text-center text-slate-400">
@@ -190,7 +219,7 @@ export default function FicheHeuresPage() {
 
           <p className="mt-8 text-xs text-slate-400">
             Pause de midi déduite forfaitairement (30 min/jour), sauf le samedi. Déplacement payé à l'aller,
-            forfait unique par jour selon la distance au dépôt le plus proche (rien à 5 km ou moins d'un dépôt, 15 min jusqu'à 15 km, 30 min au-delà).
+            forfait unique par jour selon la distance au dépôt le plus proche (rien à 8 km ou moins d'un dépôt, 15 min jusqu'à 20 km, 30 min au-delà).
           </p>
         </div>
       </div>

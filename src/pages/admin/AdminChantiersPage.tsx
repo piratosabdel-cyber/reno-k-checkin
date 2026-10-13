@@ -317,21 +317,6 @@ export default function AdminChantiersPage() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">
-              Si un ouvrier pointe hors zone
-            </label>
-            <select
-              value={form.mode_hors_zone}
-              onChange={(e) =>
-                setForm({ ...form, mode_hors_zone: e.target.value as 'justifier' | 'bloquer' })
-              }
-              className="w-full rounded-lg border border-slate-300 px-3 py-2"
-            >
-              <option value="justifier">Autoriser avec justification</option>
-              <option value="bloquer">Bloquer le pointage</option>
-            </select>
-          </div>
-          <div>
             <label className="mb-1 block text-sm font-medium text-slate-700">Date de début (optionnel)</label>
             <input
               type="date"

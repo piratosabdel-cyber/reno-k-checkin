@@ -19,9 +19,11 @@ function fmtHeure(iso: string) {
   return new Date(iso).toLocaleTimeString('fr-BE', { hour: '2-digit', minute: '2-digit' })
 }
 
-function statutPresence(dernierType: TypePointage): { label: string; classe: string } {
+function statutPresence(dernierType: TypePointage, aujourdhui: boolean): { label: string; classe: string } {
   if (dernierType === 'arrivee' || dernierType === 'pause_fin')
-    return { label: 'Présent', classe: 'bg-emerald-100 text-emerald-700' }
+    return aujourdhui
+      ? { label: 'Présent', classe: 'bg-emerald-100 text-emerald-700' }
+      : { label: 'Départ manquant', classe: 'bg-red-100 text-red-700' }
   if (dernierType === 'pause_debut') return { label: 'En pause', classe: 'bg-amber-100 text-amber-700' }
   return { label: 'Parti', classe: 'bg-slate-100 text-slate-500' }
 }
@@ -177,7 +179,7 @@ export default function AdminDashboardPage() {
                 </thead>
                 <tbody>
                   {[...presenceParOuvrier.values()].map((p) => {
-                    const s = statutPresence(p.dernierType)
+                    const s = statutPresence(p.dernierType, estAujourdhui)
                     return (
                       <tr key={p.ouvrier.id} className="border-t border-slate-100">
                         <td className="px-4 py-3 whitespace-nowrap font-medium text-slate-900">{p.ouvrier.full_name}</td>
