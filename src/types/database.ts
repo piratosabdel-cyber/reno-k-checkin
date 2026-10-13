@@ -1,5 +1,5 @@
 export type Role = 'admin' | 'ouvrier'
-export type ChantierStatut = 'actif' | 'termine'
+export type ChantierStatut = 'actif' | 'termine' | 'en_attente' | 'refuse'
 export type ModeHorsZone = 'bloquer' | 'justifier'
 export type TypePointage = 'arrivee' | 'pause_debut' | 'pause_fin' | 'depart'
 export type StatutPointage = 'accepte' | 'hors_zone' | 'corrige' | 'en_attente'
@@ -26,6 +26,8 @@ export interface Chantier {
   date_debut: string | null
   date_fin: string | null
   statut: ChantierStatut
+  propose_par: string | null
+  date_decision: string | null
   created_at: string
 }
 

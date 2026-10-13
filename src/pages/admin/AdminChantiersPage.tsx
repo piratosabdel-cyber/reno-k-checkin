@@ -1,7 +1,18 @@
 import { Fragment, useEffect, useState, type FormEvent } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import ChantierLocationPicker from '../../components/ChantierLocationPicker'
 import type { Chantier, Profile } from '../../types/database'
+
+type ChantierAvecProposant = Chantier & { proposant: Pick<Profile, 'id' | 'full_name'> | null }
+type Filtre = 'a_approuver' | 'actif' | 'archive' | 'tous'
+
+const BADGES: Record<Chantier['statut'], { label: string; classe: string }> = {
+  actif: { label: 'Actif', classe: 'bg-emerald-100 text-emerald-700' },
+  termine: { label: 'Archivé', classe: 'bg-slate-100 text-slate-500' },
+  en_attente: { label: 'À approuver', classe: 'bg-amber-100 text-amber-700' },
+  refuse: { label: 'Refusé', classe: 'bg-red-100 text-red-600' },
+}
 
 const emptyForm = {
   id: null as string | null,
@@ -18,7 +29,8 @@ const emptyForm = {
 }
 
 export default function AdminChantiersPage() {
-  const [chantiers, setChantiers] = useState<Chantier[]>([])
+  const [searchParams] = useSearchParams()
+  const [chantiers, setChantiers] = useState<ChantierAvecProposant[]>([])
   const [ouvriers, setOuvriers] = useState<Profile[]>([])
   const [assignments, setAssignments] = useState<Record<string, string[]>>({})
   const [loading, setLoading] = useState(true)
@@ -26,18 +38,20 @@ export default function AdminChantiersPage() {
   const [form, setForm] = useState(emptyForm)
   const [saving, setSaving] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
-  const [filtreStatut, setFiltreStatut] = useState<'actif' | 'archive' | 'tous'>('actif')
+  const [filtreStatut, setFiltreStatut] = useState<Filtre>(
+    searchParams.get('filtre') === 'a_approuver' ? 'a_approuver' : 'actif'
+  )
   const [erreurForm, setErreurForm] = useState<string | null>(null)
   const [declencheurRecherche, setDeclencheurRecherche] = useState(0)
 
   async function load() {
     setLoading(true)
     const [{ data: c }, { data: o }, { data: a }] = await Promise.all([
-      supabase.from('chantiers').select('*').order('statut').order('nom'),
+      supabase.from('chantiers').select('*, proposant:profiles(id, full_name)').order('statut').order('nom'),
       supabase.from('profiles').select('*').eq('role', 'ouvrier').eq('active', true).order('full_name'),
       supabase.from('chantier_assignments').select('chantier_id, ouvrier_id'),
     ])
-    setChantiers((c as Chantier[]) ?? [])
+    setChantiers((c as unknown as ChantierAvecProposant[]) ?? [])
     setOuvriers((o as Profile[]) ?? [])
     const map: Record<string, string[]> = {}
     for (const row of a ?? []) {
@@ -49,7 +63,34 @@ export default function AdminChantiersPage() {
 
   useEffect(() => {
     load()
+    const channel = supabase
+      .channel('chantiers-admin')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'chantiers' }, () => load())
+      .subscribe()
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [])
+
+  async function approuver(c: ChantierAvecProposant) {
+    await supabase
+      .from('chantiers')
+      .update({ statut: 'actif', date_decision: new Date().toISOString() })
+      .eq('id', c.id)
+    if (c.propose_par) {
+      await supabase.from('chantier_assignments').insert({ chantier_id: c.id, ouvrier_id: c.propose_par })
+    }
+    load()
+  }
+
+  async function refuser(c: ChantierAvecProposant) {
+    if (!confirm(`Refuser le chantier "${c.nom}" ? L'ouvrier ne pourra pas pointer dessus.`)) return
+    await supabase
+      .from('chantiers')
+      .update({ statut: 'refuse', date_decision: new Date().toISOString() })
+      .eq('id', c.id)
+    load()
+  }
 
   function startEdit(c?: Chantier) {
     if (c) {
@@ -135,12 +176,21 @@ export default function AdminChantiersPage() {
   }
 
   const chantiersFiltres = chantiers.filter((c) => {
+    if (filtreStatut === 'a_approuver') return c.statut === 'en_attente'
     if (filtreStatut === 'actif') return c.statut === 'actif'
     if (filtreStatut === 'archive') return c.statut === 'termine'
     return true
   })
+  const nbEnAttente = chantiers.filter((c) => c.statut === 'en_attente').length
   const nbActifs = chantiers.filter((c) => c.statut === 'actif').length
-  const nbArchives = chantiers.length - nbActifs
+  const nbArchives = chantiers.filter((c) => c.statut === 'termine').length
+
+  const onglets: [Filtre, string][] = [
+    ...(nbEnAttente > 0 ? ([['a_approuver', `🔔 À approuver (${nbEnAttente})`]] as [Filtre, string][]) : []),
+    ['actif', `Actifs (${nbActifs})`],
+    ['archive', `Archivés (${nbArchives})`],
+    ['tous', `Tous (${chantiers.length})`],
+  ]
 
   return (
     <div>
@@ -148,20 +198,16 @@ export default function AdminChantiersPage() {
         <h1 className="text-2xl font-bold text-slate-900">Chantiers</h1>
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex gap-1 rounded-lg bg-slate-100 p-1 text-sm">
-            {(
-              [
-                ['actif', `Actifs (${nbActifs})`],
-                ['archive', `Archivés (${nbArchives})`],
-                ['tous', `Tous (${chantiers.length})`],
-              ] as const
-            ).map(([valeur, libelle]) => (
+            {onglets.map(([valeur, libelle]) => (
               <button
                 key={valeur}
                 onClick={() => setFiltreStatut(valeur)}
                 className={`rounded-md px-3 py-1.5 font-medium transition ${
                   filtreStatut === valeur
                     ? 'bg-white text-slate-900 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-700'
+                    : valeur === 'a_approuver'
+                      ? 'text-amber-700 hover:text-amber-900'
+                      : 'text-slate-500 hover:text-slate-700'
                 }`}
               >
                 {libelle}
@@ -181,6 +227,12 @@ export default function AdminChantiersPage() {
         <p className="mb-4 text-sm text-slate-500">
           Les chantiers archivés ne sont visibles que par toi — ils n'apparaissent jamais dans l'écran de
           pointage des ouvriers.
+        </p>
+      )}
+      {filtreStatut === 'a_approuver' && (
+        <p className="mb-4 text-sm text-slate-500">
+          Chantiers proposés par les ouvriers. Vérifie le nom et l'emplacement ("Modifier" si besoin), puis
+          approuve : il devient actif et l'ouvrier qui l'a proposé y est assigné automatiquement.
         </p>
       )}
 
@@ -328,32 +380,53 @@ export default function AdminChantiersPage() {
               {chantiersFiltres.map((c) => (
                 <Fragment key={c.id}>
                   <tr className="border-t border-slate-100">
-                    <td className="px-4 py-3 whitespace-nowrap font-medium text-slate-900">{c.nom}</td>
+                    <td className="px-4 py-3 whitespace-nowrap font-medium text-slate-900">
+                      {c.nom}
+                      {c.proposant && (
+                        <span className="block text-xs font-normal text-slate-400">
+                          Proposé par {c.proposant.full_name} le{' '}
+                          {new Date(c.created_at).toLocaleDateString('fr-BE')}
+                        </span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 whitespace-nowrap text-slate-500">{c.adresse}</td>
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <span
-                        className={`rounded-full px-2 py-1 text-xs font-medium ${
-                          c.statut === 'actif'
-                            ? 'bg-emerald-100 text-emerald-700'
-                            : 'bg-slate-100 text-slate-500'
-                        }`}
-                      >
-                        {c.statut === 'actif' ? 'Actif' : 'Archivé'}
+                      <span className={`rounded-full px-2 py-1 text-xs font-medium ${BADGES[c.statut].classe}`}>
+                        {BADGES[c.statut].label}
                       </span>
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-right">
-                      <button
-                        onClick={() => setExpandedId(expandedId === c.id ? null : c.id)}
-                        className="mr-3 text-orange-600 hover:underline"
-                      >
-                        Assigner
-                      </button>
-                      <button onClick={() => startEdit(c)} className="mr-3 text-slate-500 hover:underline">
-                        Modifier
-                      </button>
-                      <button onClick={() => toggleStatut(c)} className="text-slate-500 hover:underline">
-                        {c.statut === 'actif' ? 'Archiver' : 'Réactiver'}
-                      </button>
+                      {c.statut === 'en_attente' ? (
+                        <>
+                          <button onClick={() => startEdit(c)} className="mr-3 text-slate-500 hover:underline">
+                            Modifier
+                          </button>
+                          <button
+                            onClick={() => approuver(c)}
+                            className="mr-3 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
+                          >
+                            ✓ Approuver
+                          </button>
+                          <button onClick={() => refuser(c)} className="text-red-600 hover:underline">
+                            Refuser
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => setExpandedId(expandedId === c.id ? null : c.id)}
+                            className="mr-3 text-orange-600 hover:underline"
+                          >
+                            Assigner
+                          </button>
+                          <button onClick={() => startEdit(c)} className="mr-3 text-slate-500 hover:underline">
+                            Modifier
+                          </button>
+                          <button onClick={() => toggleStatut(c)} className="text-slate-500 hover:underline">
+                            {c.statut === 'actif' ? 'Archiver' : 'Réactiver'}
+                          </button>
+                        </>
+                      )}
                     </td>
                   </tr>
                   {expandedId === c.id && (

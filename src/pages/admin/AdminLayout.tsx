@@ -1,6 +1,7 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { Link, NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import KillSwitchButton from '../../components/KillSwitchButton'
+import { usePropositionsEnAttente } from '../../hooks/usePropositionsEnAttente'
 
 const linkClass = ({ isActive }: { isActive: boolean }) =>
   `shrink-0 rounded-lg px-4 py-2 text-sm font-medium transition ${
@@ -9,6 +10,7 @@ const linkClass = ({ isActive }: { isActive: boolean }) =>
 
 export default function AdminLayout() {
   const { profile, signOut } = useAuth()
+  const propositions = usePropositionsEnAttente()
 
   return (
     <div className="min-h-screen bg-slate-100">
@@ -32,6 +34,11 @@ export default function AdminLayout() {
           </NavLink>
           <NavLink to="/admin/chantiers" className={linkClass}>
             Chantiers
+            {propositions > 0 && (
+              <span className="ml-2 rounded-full bg-amber-400 px-2 py-0.5 text-xs font-bold text-slate-900">
+                {propositions}
+              </span>
+            )}
           </NavLink>
           <NavLink to="/admin/ouvriers" className={linkClass}>
             Ouvriers
@@ -43,6 +50,18 @@ export default function AdminLayout() {
       </header>
 
       <main className="mx-auto max-w-6xl px-3 py-6 sm:px-6 sm:py-8">
+        {propositions > 0 && (
+          <Link
+            to="/admin/chantiers?filtre=a_approuver"
+            className="mb-6 flex items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 hover:bg-amber-100"
+          >
+            <span>
+              🔔 <strong>{propositions}</strong> nouveau{propositions > 1 ? 'x' : ''} chantier
+              {propositions > 1 ? 's' : ''} proposé{propositions > 1 ? 's' : ''} par un ouvrier — à approuver
+            </span>
+            <span className="shrink-0 font-semibold">Voir →</span>
+          </Link>
+        )}
         <Outlet />
       </main>
     </div>

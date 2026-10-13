@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext'
 import { distanceMetres, getCurrentPosition } from '../../lib/geo'
 import { ajouterALaFile, listerFile } from '../../lib/offlineQueue'
 import { synchroniser } from '../../lib/sync'
+import ProposerChantierForm from '../../components/ProposerChantierForm'
 import type { Chantier, Pointage, TypePointage } from '../../types/database'
 
 const LABELS: Record<TypePointage, string> = {
@@ -56,6 +57,8 @@ export default function CheckInPage() {
   )
   const syncEnCours = useRef(false)
   const [appActive, setAppActive] = useState<boolean | null>(null)
+  const [proposer, setProposer] = useState(false)
+  const [mesPropositions, setMesPropositions] = useState<Chantier[]>([])
 
   const [justificationRequise, setJustificationRequise] = useState<{
     type: TypePointage
@@ -70,20 +73,29 @@ export default function CheckInPage() {
     if (!profile) return
     setLoading(true)
 
-    const [{ data: assigned }, { data: allActive }, { data: today }, fileLocale] = await Promise.all([
-      supabase
-        .from('chantier_assignments')
-        .select('chantier:chantiers(*)')
-        .eq('ouvrier_id', profile.id),
-      supabase.from('chantiers').select('*').eq('statut', 'actif').order('nom'),
-      supabase
-        .from('pointages')
-        .select('*')
-        .eq('ouvrier_id', profile.id)
-        .gte('heure_appareil', startOfToday().toISOString())
-        .order('heure_appareil'),
-      listerFile(profile.id),
-    ])
+    const [{ data: assigned }, { data: allActive }, { data: today }, fileLocale, { data: propositions }] =
+      await Promise.all([
+        supabase
+          .from('chantier_assignments')
+          .select('chantier:chantiers(*)')
+          .eq('ouvrier_id', profile.id),
+        supabase.from('chantiers').select('*').eq('statut', 'actif').order('nom'),
+        supabase
+          .from('pointages')
+          .select('*')
+          .eq('ouvrier_id', profile.id)
+          .gte('heure_appareil', startOfToday().toISOString())
+          .order('heure_appareil'),
+        listerFile(profile.id),
+        supabase
+          .from('chantiers')
+          .select('*')
+          .eq('propose_par', profile.id)
+          .eq('statut', 'en_attente')
+          .order('created_at'),
+      ])
+
+    setMesPropositions((propositions as Chantier[]) ?? [])
 
     const assignedActive =
       (assigned
@@ -391,6 +403,20 @@ export default function CheckInPage() {
       )}
 
       <main className="flex flex-1 flex-col items-center justify-center gap-6 px-5 py-8">
+        {proposer && profile ? (
+          <ProposerChantierForm
+            ouvrierId={profile.id}
+            onAnnuler={() => setProposer(false)}
+            onEnvoye={() => {
+              setProposer(false)
+              setMessage({
+                type: 'success',
+                text: "Chantier proposé — en attente d'approbation par l'administrateur.",
+              })
+              loadData()
+            }}
+          />
+        ) : (
         <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-sm">
           {justificationRequise ? (
             <>
@@ -460,9 +486,33 @@ export default function CheckInPage() {
                   </button>
                 ))}
               </div>
+
+              <button
+                onClick={() => {
+                  setMessage(null)
+                  setProposer(true)
+                }}
+                className="mt-4 w-full rounded-xl border border-dashed border-slate-300 py-3 text-sm font-medium text-slate-500 active:bg-slate-50"
+              >
+                ➕ Le chantier n'est pas dans la liste ? Proposer un nouveau chantier
+              </button>
             </>
           )}
         </div>
+        )}
+
+        {!proposer && mesPropositions.length > 0 && (
+          <div className="w-full max-w-md rounded-2xl bg-amber-50 p-4 text-sm text-amber-800">
+            <p className="mb-1 font-semibold">⏳ En attente d'approbation</p>
+            <ul className="list-inside list-disc">
+              {mesPropositions.map((c) => (
+                <li key={c.id}>
+                  {c.nom} — {c.adresse}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {pointagesDuJour.length > 0 && (
           <div className="w-full max-w-md rounded-2xl bg-white p-4 shadow-sm">
