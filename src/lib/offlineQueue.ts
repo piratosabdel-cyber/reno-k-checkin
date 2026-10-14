@@ -16,6 +16,8 @@ export interface PointageEnAttente {
   justification: string | null
   statut: 'accepte' | 'hors_zone'
   modele_telephone: string | null
+  /** Dernier refus du serveur (null/absent = seulement en attente de réseau). */
+  derniere_erreur?: string | null
 }
 
 interface RenoKDB extends DBSchema {

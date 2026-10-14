@@ -3,7 +3,7 @@ import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
 import { distanceMetres, getCurrentPosition, messageGeoErreur } from '../../lib/geo'
 import { ajouterALaFile, listerFile } from '../../lib/offlineQueue'
-import { synchroniser } from '../../lib/sync'
+import { estRefusServeur, raisonRefus, signalerEchec, synchroniser } from '../../lib/sync'
 import ProposerChantierForm from '../../components/ProposerChantierForm'
 import type { Chantier, Pointage, TypePointage } from '../../types/database'
 
@@ -21,7 +21,7 @@ const COULEURS: Record<TypePointage, string> = {
   depart: 'bg-red-600 active:bg-red-700',
 }
 
-type PointageAffichage = Pointage & { enAttente?: boolean }
+type PointageAffichage = Pointage & { enAttente?: boolean; refus?: string | null }
 
 /** Au-delà de cette distance du chantier le plus proche, on ne propose rien : l'ouvrier choisit dans la liste. */
 const DISTANCE_DETECTION_M = 2000
@@ -138,6 +138,7 @@ export default function CheckInPage() {
         cree_hors_ligne: true,
         created_at: p.heure_appareil,
         enAttente: true,
+        refus: p.derniere_erreur ?? null,
       }))
 
     const parUuid = new Map<string, PointageAffichage>()
@@ -337,16 +338,20 @@ export default function CheckInPage() {
       const { error } = await supabase.from('pointages').insert({ ...pointage, cree_hors_ligne: false })
 
       if (error) {
-        // Une vraie erreur serveur (ex: refusée par une règle) a un code Postgrest.
-        // Une coupure réseau n'en a généralement pas -> on bascule en file locale.
-        if (error.code) {
-          setMessage({ type: 'error', text: 'Erreur lors du pointage. Réessaie.' })
-          return
-        }
-        throw error
-      }
+        // Une coupure réseau n'a généralement pas de code -> file locale (catch).
+        if (!estRefusServeur(error)) throw error
 
-      setMessage({
+        // Refus du serveur (ex: règle de sécurité) : on ne perd jamais le
+        // pointage. Il reste sur le téléphone, est renvoyé automatiquement, et
+        // l'admin le voit dans la vue du jour.
+        const raison = raisonRefus(error)
+        await ajouterALaFile({ ...pointage, derniere_erreur: raison })
+        await signalerEchec(pointage, error)
+        setMessage({
+          type: 'error',
+          text: `${LABELS[type]} pas accepté par le serveur (${raison}). Il est gardé sur ton téléphone avec l'heure exacte et le bureau est prévenu.`,
+        })
+      } else setMessage({
         type: hors_zone || lat == null ? 'warning' : 'success',
         text: hors_zone
           ? `${LABELS[type]} enregistré — hors zone du chantier.`
@@ -474,7 +479,9 @@ export default function CheckInPage() {
         >
           {!enLigne
             ? '📴 Hors ligne — tes pointages sont enregistrés sur le téléphone'
-            : `⏳ ${enAttenteCount} pointage(s) en attente de synchronisation...`}
+            : pointagesDuJour.some((p) => p.refus)
+              ? `⛔ ${enAttenteCount} pointage(s) pas encore accepté(s) par le serveur — le bureau est prévenu`
+              : `⏳ ${enAttenteCount} pointage(s) en attente de synchronisation...`}
         </div>
       )}
 
@@ -675,7 +682,12 @@ export default function CheckInPage() {
                     {LABELS[p.type]}
                     {p.hors_zone && <span className="ml-2 text-amber-600">(hors zone)</span>}
                     {p.latitude == null && <span className="ml-2 text-slate-400">(sans position)</span>}
-                    {p.enAttente && <span className="ml-2 text-slate-400">(en attente)</span>}
+                    {p.enAttente &&
+                      (p.refus ? (
+                        <span className="ml-2 text-red-600">(refusé : {p.refus})</span>
+                      ) : (
+                        <span className="ml-2 text-slate-400">(en attente)</span>
+                      ))}
                   </span>
                   <span>
                     {new Date(p.heure_appareil).toLocaleTimeString('fr-BE', {

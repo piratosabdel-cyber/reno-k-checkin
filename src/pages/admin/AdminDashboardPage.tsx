@@ -2,7 +2,22 @@ import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '../../lib/supabase'
 import PointagesMap from '../../components/PointagesMap'
 import LieuLabel from '../../components/LieuLabel'
-import type { PointageWithRelations, Profile, Chantier, TypePointage } from '../../types/database'
+import type { Pointage, PointageWithRelations, Profile, Chantier, TypePointage } from '../../types/database'
+
+type Echec = {
+  client_uuid: string
+  type: TypePointage
+  heure_appareil: string
+  erreur_code: string | null
+  erreur_message: string | null
+  ouvrier: { full_name: string } | null
+  chantier: { nom: string } | null
+}
+
+/** Un pointage synchronisé plus de 10 min après avoir été fait (réseau absent sur le chantier). */
+function arriveEnRetard(p: Pointage) {
+  return p.cree_hors_ligne && new Date(p.heure_serveur).getTime() - new Date(p.heure_appareil).getTime() > 10 * 60_000
+}
 
 const LABELS: Record<TypePointage, string> = {
   arrivee: 'Arrivée',
@@ -33,6 +48,7 @@ export default function AdminDashboardPage() {
   const [pointages, setPointages] = useState<PointageWithRelations[]>([])
   const [chantiers, setChantiers] = useState<Chantier[]>([])
   const [manquants, setManquants] = useState<{ ouvrier: Profile; chantier: Chantier }[]>([])
+  const [echecs, setEchecs] = useState<Echec[]>([])
   const [loading, setLoading] = useState(true)
 
   const estAujourdhui = date === aujourdhui()
@@ -52,6 +68,17 @@ export default function AdminDashboardPage() {
       (p) => (p.ouvrier as Profile)?.active !== false
     )
     setPointages(rows)
+
+    // Pointages refusés par le serveur et restés sur le téléphone de l'ouvrier.
+    // Dès qu'un pointage finit par passer, il est dans `pointages` -> on le masque ici.
+    const { data: echecsJour } = await supabase
+      .from('pointages_echecs')
+      .select('*, ouvrier:profiles(full_name), chantier:chantiers(nom)')
+      .gte('heure_appareil', `${date}T00:00:00`)
+      .lte('heure_appareil', `${date}T23:59:59`)
+      .order('heure_appareil')
+    const uuidsRecus = new Set(((pointagesJour as Pointage[]) ?? []).map((p) => p.client_uuid))
+    setEchecs(((echecsJour as unknown as Echec[]) ?? []).filter((e) => !uuidsRecus.has(e.client_uuid)))
 
     const [{ data: assignments }, { data: chantiersActifs }] = await Promise.all([
       supabase
@@ -82,6 +109,9 @@ export default function AdminDashboardPage() {
     const channel = supabase
       .channel('pointages-live')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'pointages' }, () => {
+        loadJour()
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pointages_echecs' }, () => {
         loadJour()
       })
       .subscribe()
@@ -142,6 +172,24 @@ export default function AdminDashboardPage() {
           )}
         </div>
       </div>
+
+      {echecs.length > 0 && (
+        <div className="mb-4 rounded-xl bg-red-50 p-4 text-red-900">
+          <p className="mb-1 font-semibold">⛔ Pointages refusés par le serveur (gardés sur le téléphone de l'ouvrier) :</p>
+          <ul className="list-inside list-disc text-sm">
+            {echecs.map((e) => (
+              <li key={e.client_uuid}>
+                {e.ouvrier?.full_name ?? 'Ouvrier inconnu'} — {LABELS[e.type]} à {fmtHeure(e.heure_appareil)}
+                {e.chantier && <> sur {e.chantier.nom}</>}
+                <span className="text-red-700">
+                  {' '}
+                  ({e.erreur_code === '42501' ? 'compte bloqué ou règle de sécurité' : (e.erreur_message ?? e.erreur_code)})
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {manquants.length > 0 && (
         <div className="mb-4 rounded-xl bg-amber-50 p-4 text-amber-900">
@@ -249,7 +297,17 @@ export default function AdminDashboardPage() {
                       <td className="px-4 py-3 whitespace-nowrap font-medium text-slate-900">{p.ouvrier.full_name}</td>
                       <td className="px-4 py-3 whitespace-nowrap text-slate-600">{p.chantier.nom}</td>
                       <td className="px-4 py-3 whitespace-nowrap">{LABELS[p.type]}</td>
-                      <td className="px-4 py-3 whitespace-nowrap">{fmtHeure(p.heure_appareil)}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        {fmtHeure(p.heure_appareil)}
+                        {arriveEnRetard(p) && (
+                          <span
+                            className="ml-2 text-xs text-slate-500"
+                            title="Pointé sans réseau, envoyé plus tard par le téléphone"
+                          >
+                            📶 reçu à {fmtHeure(p.heure_serveur)}
+                          </span>
+                        )}
+                      </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <span
                           className={`rounded-full px-2 py-1 text-xs font-medium ${
