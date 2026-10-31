@@ -1,5 +1,6 @@
 import { Link, NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import { estAdala } from '../../lib/marque'
 import KillSwitchButton from '../../components/KillSwitchButton'
 import { usePropositionsEnAttente } from '../../hooks/usePropositionsEnAttente'
 
@@ -16,7 +17,7 @@ export default function AdminLayout() {
     <div className="min-h-screen bg-slate-100">
       <header className="bg-slate-900 text-white">
         <div className="flex items-center justify-between px-4 py-3 sm:px-6 sm:py-4">
-          <span className="text-lg font-bold">Reno-K — Admin</span>
+          <span className="text-lg font-bold">{estAdala ? 'Adala — Admin' : 'Reno-K — Admin'}</span>
           <div className="flex items-center gap-2 sm:gap-4">
             <span className="hidden text-sm text-slate-400 sm:inline">{profile?.full_name}</span>
             <KillSwitchButton />
@@ -45,6 +46,12 @@ export default function AdminLayout() {
           </NavLink>
           <NavLink to="/admin/heures" className={linkClass}>
             Heures
+          </NavLink>
+          <NavLink to="/admin/visites" className={linkClass}>
+            Visites Adala
+          </NavLink>
+          <NavLink to="/admin/commerces" className={linkClass}>
+            Commerces
           </NavLink>
         </nav>
       </header>

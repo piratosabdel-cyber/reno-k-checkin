@@ -8,6 +8,25 @@
     <meta name="theme-color" content="#ea580c" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Reno-K — Check-in chantier</title>
+    <script>
+      // Sur visites.adalacola.com (ou ?marque=adala en local), l'app installée
+      // porte le nom et le logo Adala, pas ceux de Reno-K.
+      (function () {
+        try {
+          var p = new URLSearchParams(location.search).get('marque')
+          if (p) localStorage.setItem('marque', p)
+          var adala = /adala/i.test(location.hostname) || localStorage.getItem('marque') === 'adala'
+        } catch (e) {
+          var adala = /adala/i.test(location.hostname)
+        }
+        if (!adala) return
+        document.querySelector('link[rel="manifest"]').href = '/adala/manifest.json'
+        document.querySelector('link[rel="icon"]').href = '/adala/favicon.png'
+        document.querySelector('link[rel="apple-touch-icon"]').href = '/adala/apple-touch-icon.png'
+        document.querySelector('meta[name="theme-color"]').content = '#1a1a1a'
+        document.title = 'Adala Visites'
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

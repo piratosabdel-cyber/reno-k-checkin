@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useState, type FormEvent } from 'react'
 import { supabase } from '../../lib/supabase'
-import { adminAuthClient, generatePassword } from '../../lib/adminAuthClient'
+import { generatePassword } from '../../lib/adminAuthClient'
 import type { Chantier, Profile, PointageWithRelations, TypePointage } from '../../types/database'
 import LieuLabel from '../../components/LieuLabel'
 
@@ -56,16 +56,35 @@ export default function AdminOuvriersPage() {
     setError(null)
     setSaving(true)
 
-    const { error } = await adminAuthClient.auth.signUp({
-      email,
-      password,
-      options: { data: { full_name: fullName, role: 'ouvrier' } },
-    })
+    // Création côté serveur : les inscriptions publiques peuvent ainsi rester
+    // désactivées dans Supabase (personne ne peut se créer un compte seul).
+    let error: string | null = null
+    try {
+      const { data: sessionData } = await supabase.auth.getSession()
+      const res = await fetch('/api/create-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${sessionData.session?.access_token}`,
+        },
+        body: JSON.stringify({ email, password, fullName, role: 'ouvrier' }),
+      })
+      if (!res.ok) {
+        const texte = await res.text()
+        try {
+          error = (JSON.parse(texte) as { error?: string }).error ?? `Erreur ${res.status}`
+        } catch {
+          error = `Réponse inattendue du serveur (${res.status})`
+        }
+      }
+    } catch (e) {
+      error = e instanceof Error ? e.message : 'Erreur réseau lors de la création.'
+    }
 
     setSaving(false)
 
     if (error) {
-      setError(error.message)
+      setError(error)
       return
     }
 
