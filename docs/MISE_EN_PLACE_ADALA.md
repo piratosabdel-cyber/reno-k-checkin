@@ -21,10 +21,10 @@ Vercel → projet → **Settings → Environment Variables** :
 Puis **Deployments → ⋯ → Redeploy**.
 
 ## 3. Sous-domaine visites.adalacola.com — 10 min
-1. Vercel → projet → **Settings → Domains → Add** → `visites.adalacola.com`. Vercel affiche une valeur **CNAME**, en général `cname.vercel-dns.com`.
+1. ✅ Fait le 31/10/2026 : `visites.adalacola.com` est ajouté au projet Vercel reno-k-checkin.
 2. Combell → **adalacola.com → DNS** → ajoute un enregistrement **CNAME** :
    - nom : `visites`
-   - valeur : celle donnée par Vercel
+   - valeur : `2eb5a69e41588169.vercel-dns-017.com.` (valeur donnée par Vercel ; `cname.vercel-dns.com` marche aussi)
 3. Attends que Vercel affiche **Valid Configuration** (de quelques minutes à 1 h).
 
 Résultat :
@@ -32,6 +32,7 @@ Résultat :
 - **visites.adalacola.com** affiche le logo et le nom Adala, et c'est elle qui s'installe sur la tablette.
 
 ## 4. Google Drive de order@adalacola.com — 15 min
+> ✅ Fait le 31/10/2026, avec le compte piratos.abdel@gmail.com : projet Google Cloud `adala-visites` (« Adala Visites »), API Drive activée, écran de consentement **En production** (portée drive.file, domaine autorisé adalacola.com), client OAuth Web créé avec les adresses de retour `https://visites.adalacola.com/api/google-auth` et `https://reno-k-checkin.vercel.app/api/google-auth`. Il reste à copier l'ID client et le code secret dans Vercel (étape 4.4), puis à connecter le Drive (étape 4.5) une fois la nouvelle version en ligne.
 Connecte-toi partout avec **order@adalacola.com**.
 1. Va sur https://console.cloud.google.com → **Nouveau projet** → nom « Adala Visites ».
 2. **API et services → Bibliothèque** → cherche **Google Drive API** → **Activer**.
