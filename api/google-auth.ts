@@ -1,5 +1,5 @@
-import { ecrireReglage, SCOPE_DRIVE } from './_lib/drive'
-import { echapper, env, signer, supabaseAdmin, verifierSignature, type VercelRequest, type VercelResponse } from './_lib/serveur'
+import { ecrireReglage, SCOPE_DRIVE } from './_lib/drive.js'
+import { echapper, env, signer, supabaseAdmin, verifierSignature, type VercelRequest, type VercelResponse } from './_lib/serveur.js'
 
 // Connexion unique du Google Drive de order@adalacola.com.
 //  1. L'admin ouvre /api/google-auth?cle=<CRON_SECRET>

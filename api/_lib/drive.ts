@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { echapper, env, URL_APP } from './serveur'
-import { LABEL_RESULTAT, LABEL_STATUT, LABEL_TYPE, dateBxl, heureBxl, horodatageDossier } from './textes'
+import { echapper, env, URL_APP } from './serveur.js'
+import { LABEL_RESULTAT, LABEL_STATUT, LABEL_TYPE, dateBxl, heureBxl, horodatageDossier } from './textes.js'
 
 // Archivage des visites dans le Google Drive de order@adalacola.com :
 //   Adala — Commerces / <Type> / <Commerce — Commune> / Fiche commerce

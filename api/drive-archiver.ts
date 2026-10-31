@@ -1,5 +1,5 @@
-import { archiverEnAttente } from './_lib/drive'
-import { roleAppelant, supabaseAdmin, type VercelRequest, type VercelResponse } from './_lib/serveur'
+import { archiverEnAttente } from './_lib/drive.js'
+import { roleAppelant, supabaseAdmin, type VercelRequest, type VercelResponse } from './_lib/serveur.js'
 
 // Appelée par la tablette juste après l'envoi d'une visite : copie les
 // nouvelles visites dans Google Drive. La tâche du soir rattrape les oublis.

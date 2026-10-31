@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import nodemailer from 'nodemailer'
-import { echapper, env, URL_APP } from './serveur'
-import { LABEL_RESULTAT, LABEL_TYPE, dateBxl, heureBxl, journeeBxl } from './textes'
+import { echapper, env, URL_APP } from './serveur.js'
+import { LABEL_RESULTAT, LABEL_TYPE, dateBxl, heureBxl, journeeBxl } from './textes.js'
 
 interface LigneRecap {
   id: string

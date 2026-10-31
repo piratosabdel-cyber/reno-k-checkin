@@ -1,4 +1,4 @@
-import { roleAppelant, supabaseAdmin, type VercelRequest, type VercelResponse } from './_lib/serveur'
+import { roleAppelant, supabaseAdmin, type VercelRequest, type VercelResponse } from './_lib/serveur.js'
 
 // Création d'un compte commercial par l'admin. Le rôle est posé dans
 // app_metadata (modifiable uniquement côté serveur) : personne ne peut se

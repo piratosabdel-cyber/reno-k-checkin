@@ -1,6 +1,6 @@
-import { archiverEnAttente } from './_lib/drive'
-import { envoyerRecap } from './_lib/recap'
-import { estCron, roleAppelant, supabaseAdmin, type VercelRequest, type VercelResponse } from './_lib/serveur'
+import { archiverEnAttente } from './_lib/drive.js'
+import { envoyerRecap } from './_lib/recap.js'
+import { estCron, roleAppelant, supabaseAdmin, type VercelRequest, type VercelResponse } from './_lib/serveur.js'
 
 // Tâche planifiée du soir (vercel.json > crons) : rattrape l'archivage Drive
 // puis envoie le récapitulatif de la journée à order@adalacola.com.
