@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { capturerVideo } from '../../lib/photo'
+import { tr } from '../../lib/langue'
 
 /**
  * Viseur plein écran intégré à l'app. Volontairement AUCUN accès à la
@@ -40,11 +41,17 @@ export default function CameraCapture({
         const nom = e instanceof DOMException ? e.name : ''
         setErreur(
           nom === 'NotAllowedError'
-            ? "L'appareil photo est refusé pour cette appli. Appuie sur le cadenas à côté de l'adresse (ou Paramètres de l'appli) → Autorisations → Appareil photo → Autoriser, puis réessaie."
-            : "Impossible d'ouvrir l'appareil photo. Ferme les autres applis qui l'utilisent, puis réessaie."
+            ? tr(
+                "L'appareil photo est refusé pour cette appli. Appuie sur le cadenas à côté de l'adresse (ou Paramètres de l'appli) → Autorisations → Appareil photo → Autoriser, puis réessaie.",
+                'Camera geweigerd voor deze app. Tik op het slotje naast het adres (of app-instellingen) → Machtigingen → Camera → Toestaan, en probeer opnieuw.'
+              )
+            : tr(
+                "Impossible d'ouvrir l'appareil photo. Ferme les autres applis qui l'utilisent, puis réessaie.",
+                'De camera kan niet geopend worden. Sluit andere apps die hem gebruiken en probeer opnieuw.'
+              )
         )
       })
-    if (!navigator.mediaDevices) setErreur("Cet appareil ne permet pas d'utiliser l'appareil photo ici.")
+    if (!navigator.mediaDevices) setErreur(tr("Cet appareil ne permet pas d'utiliser l'appareil photo ici.", 'Dit toestel kan de camera hier niet gebruiken.'))
     return () => {
       annule = true
       stream?.getTracks().forEach((t) => t.stop())
@@ -58,7 +65,7 @@ export default function CameraCapture({
       const blob = await capturerVideo(videoRef.current)
       onPhoto(blob, new Date().toISOString())
     } catch {
-      setErreur('La photo a échoué, réessaie.')
+      setErreur(tr('La photo a échoué, réessaie.', 'De foto is mislukt, probeer opnieuw.'))
       setCapture(false)
     }
   }
@@ -79,17 +86,17 @@ export default function CameraCapture({
           </div>
         )}
         <p className="absolute left-0 right-0 top-4 text-center text-sm font-medium text-white drop-shadow">
-          Vitrine, rayon ou frigo
+          {tr('Vitrine, rayon ou frigo', 'Etalage, rek of koelkast')}
         </p>
       </div>
       <div className="flex items-center justify-between gap-4 bg-black px-6 py-6">
         <button onClick={onFermer} className="rounded-xl px-4 py-3 text-lg text-white active:bg-white/10">
-          Annuler
+          {tr('Annuler', 'Annuleren')}
         </button>
         <button
           onClick={prendre}
           disabled={!pret || capture}
-          aria-label="Prendre la photo"
+          aria-label={tr('Prendre la photo', 'Foto nemen')}
           className="h-20 w-20 rounded-full border-4 border-white bg-white/90 transition active:scale-95 disabled:opacity-40"
         />
         <span className="w-[84px]" />

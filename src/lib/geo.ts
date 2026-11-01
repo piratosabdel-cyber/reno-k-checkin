@@ -65,18 +65,25 @@ export async function getCurrentPosition(): Promise<GeoPosition> {
 const estIphone = () => /iPhone|iPad/i.test(navigator.userAgent)
 
 /** Explication lisible + marche à suivre pour l'ouvrier. */
-export function messageGeoErreur(e: unknown): string {
+export function messageGeoErreur(e: unknown, nl = false): string {
   const code = e instanceof GeoErreur ? e.code : 'indisponible'
   switch (code) {
     case 'refus':
+      if (nl)
+        return estIphone()
+          ? "Locatie geweigerd voor deze app. Op iPhone: Instellingen → Privacy en beveiliging → Locatievoorzieningen → Safari (of Chrome) → « Bij gebruik van app » + « Exacte locatie ». Als de app op het beginscherm staat, verwijder het icoon en installeer opnieuw zodat de toestemming opnieuw gevraagd wordt."
+          : "Locatie geweigerd voor deze app. Op Android: tik op het slotje naast het adres → Machtigingen → Locatie → Toestaan, en herlaad."
       return estIphone()
         ? "La localisation est refusée pour cette appli. Sur iPhone : Réglages → Confidentialité et sécurité → Service de localisation → Safari (ou Chrome) → « Lorsque l'app est active » + « Position exacte ». Si l'appli est installée sur l'écran d'accueil, supprime l'icône et réinstalle-la pour qu'elle redemande l'autorisation."
         : "La localisation est refusée pour cette appli. Sur Android : appuie sur le cadenas à côté de l'adresse → Autorisations → Position → Autoriser, puis recharge."
     case 'timeout':
+      if (nl) return 'Je positie zoeken duurt te lang. Ga even naar buiten of dicht bij een raam en probeer opnieuw.'
       return "La recherche de position prend trop de temps. Sors à l'air libre ou approche-toi d'une fenêtre, puis réessaie."
     case 'non_supporte':
+      if (nl) return 'Deze telefoon of browser ondersteunt geen locatie.'
       return "Ce téléphone ou ce navigateur ne permet pas la localisation."
     default:
+      if (nl) return 'De telefoon vindt je positie niet. Controleer of locatie aanstaat (Instellingen → Privacy → Locatievoorzieningen) en probeer opnieuw.'
       return "Le téléphone n'arrive pas à déterminer ta position. Vérifie que la localisation est activée (Réglages → Confidentialité → Service de localisation), puis réessaie."
   }
 }

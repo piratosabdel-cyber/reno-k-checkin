@@ -8,7 +8,8 @@ import {
   synchroniserVisites,
   type VisiteEnAttente,
 } from '../../lib/visitesQueue'
-import { BADGE_RESULTAT, LABEL_RESULTAT, dateLocale, debutJour, debutSemaine } from '../../lib/visites'
+import { BADGE_RESULTAT, dateLocale, debutJour, debutSemaine } from '../../lib/visites'
+import { useLangue } from '../../lib/langue'
 import type { ResultatVisite } from '../../types/database'
 import AdalaHeader from '../../components/visites/AdalaHeader'
 
@@ -43,6 +44,7 @@ interface Affichage {
 
 export default function VisitesAccueilPage() {
   const { profile, signOut } = useAuth()
+  const { t, locale } = useLangue()
   const location = useLocation()
   const navigate = useNavigate()
   const [visites, setVisites] = useState<LigneVisite[]>([])
@@ -178,15 +180,15 @@ export default function VisitesAccueilPage() {
             onClick={signOut}
             className="shrink-0 rounded-lg border border-slate-600 px-3 py-2 text-sm text-slate-200"
           >
-            Déconnexion
+            {t('Déconnexion', 'Afmelden')}
           </button>
         }
       />
 
       <main className="mx-auto max-w-3xl space-y-4 px-3 py-4">
         <p className="text-slate-600">
-          Bonjour <strong className="text-slate-900">{profile?.full_name}</strong>
-          {!enLigne && <span className="ml-2 rounded-full bg-amber-200 px-2 py-0.5 text-xs font-semibold text-amber-900">Hors connexion</span>}
+          {t('Bonjour', 'Hallo')} <strong className="text-slate-900">{profile?.full_name}</strong>
+          {!enLigne && <span className="ml-2 rounded-full bg-amber-200 px-2 py-0.5 text-xs font-semibold text-amber-900">{t('Hors connexion', 'Offline')}</span>}
         </p>
 
         {message && (
@@ -199,17 +201,17 @@ export default function VisitesAccueilPage() {
           to="/visites/nouvelle"
           className="flex min-h-24 items-center justify-center gap-3 rounded-2xl bg-[#b83a2c] text-2xl font-bold text-white shadow-md active:opacity-90"
         >
-          <span className="text-3xl">＋</span> Nouvelle visite
+          <span className="text-3xl">＋</span> {t('Nouvelle visite', 'Nieuw bezoek')}
         </Link>
 
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-2xl bg-white p-4 text-center shadow-sm">
             <p className="text-4xl font-bold text-slate-900">{duJour.length}</p>
-            <p className="text-sm text-slate-500">aujourd'hui</p>
+            <p className="text-sm text-slate-500">{t("aujourd'hui", 'vandaag')}</p>
           </div>
           <div className="rounded-2xl bg-white p-4 text-center shadow-sm">
             <p className="text-4xl font-bold text-slate-900">{nbSemaine}</p>
-            <p className="text-sm text-slate-500">cette semaine</p>
+            <p className="text-sm text-slate-500">{t('cette semaine', 'deze week')}</p>
           </div>
         </div>
 
@@ -217,17 +219,18 @@ export default function VisitesAccueilPage() {
           to="/visites/envoyer"
           className="flex min-h-14 items-center justify-center gap-2 rounded-2xl border-2 border-[#b83a2c] bg-white text-lg font-semibold text-[#b83a2c] active:bg-red-50"
         >
-          ✉ Envoyer une liste à order@
+          ✉ {t('Envoyer une liste à order@', 'Lijst naar order@ sturen')}
         </Link>
 
         {enAttente.length > 0 && (
           <div className="flex items-center justify-between gap-3 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
             <span>
-              ⏳ {enAttente.length} visite{enAttente.length > 1 ? 's' : ''} en attente d'envoi
+              ⏳ {enAttente.length}{' '}
+              {enAttente.length > 1 ? t("visites en attente d'envoi", 'bezoeken wachten op verzending') : t("visite en attente d'envoi", 'bezoek wacht op verzending')}
             </span>
             {enLigne && (
               <button onClick={synchro} className="font-semibold underline">
-                Envoyer
+                {t('Envoyer', 'Verzenden')}
               </button>
             )}
           </div>
@@ -235,7 +238,7 @@ export default function VisitesAccueilPage() {
 
         {aCompleter.length > 0 && (
           <section className="rounded-2xl bg-white p-4 shadow-sm">
-            <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">À compléter</h2>
+            <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">{t('À compléter', 'Aan te vullen')}</h2>
             <ul className="space-y-2">
               {aCompleter.map((v) => (
                 <li key={v.id}>
@@ -244,7 +247,7 @@ export default function VisitesAccueilPage() {
                     className="flex items-center justify-between rounded-xl border border-amber-300 bg-amber-50 px-4 py-3"
                   >
                     <span className="font-medium text-slate-800">{v.commerce?.nom}</span>
-                    <span className="text-sm font-semibold text-amber-800">Compléter →</span>
+                    <span className="text-sm font-semibold text-amber-800">{t('Compléter', 'Aanvullen')} →</span>
                   </Link>
                 </li>
               ))}
@@ -254,7 +257,7 @@ export default function VisitesAccueilPage() {
 
         {relances.length > 0 && (
           <section className="rounded-2xl bg-white p-4 shadow-sm">
-            <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">Relances à faire</h2>
+            <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">{t('Relances à faire', 'Op te volgen')}</h2>
             <ul className="divide-y divide-slate-100">
               {relances.map((v) => (
                 <li key={v.id} className="flex items-center justify-between gap-3 py-2">
@@ -263,7 +266,7 @@ export default function VisitesAccueilPage() {
                     {v.commerce?.commune && <span className="text-slate-400"> · {v.commerce.commune}</span>}
                   </span>
                   <span className="shrink-0 text-sm text-slate-500">
-                    {new Date(v.date_relance! + 'T12:00').toLocaleDateString('fr-BE', { day: 'numeric', month: 'short' })}
+                    {new Date(v.date_relance! + 'T12:00').toLocaleDateString(locale, { day: 'numeric', month: 'short' })}
                   </span>
                 </li>
               ))}
@@ -272,23 +275,25 @@ export default function VisitesAccueilPage() {
         )}
 
         <section className="rounded-2xl bg-white p-4 shadow-sm">
-          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">Visites du jour</h2>
+          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">{t('Visites du jour', 'Bezoeken van vandaag')}</h2>
           {chargement ? (
-            <p className="py-4 text-center text-slate-400">Chargement…</p>
+            <p className="py-4 text-center text-slate-400">{t('Chargement…', 'Laden…')}</p>
           ) : duJour.length === 0 ? (
-            <p className="py-4 text-center text-slate-400">Aucune visite pour l'instant.</p>
+            <p className="py-4 text-center text-slate-400">{t("Aucune visite pour l'instant.", 'Nog geen bezoeken.')}</p>
           ) : (
             <ListeVisites visites={duJour} />
           )}
           {duJour.some((v) => v.id) && (
-            <p className="mt-2 text-center text-xs text-slate-400">Touche une visite pour la voir, la modifier ou l'effacer.</p>
+            <p className="mt-2 text-center text-xs text-slate-400">
+              {t("Touche une visite pour la voir, la modifier ou l'effacer.", 'Tik op een bezoek om het te bekijken, te wijzigen of te wissen.')}
+            </p>
           )}
         </section>
 
         {precedentes.length > 0 && (
           <section className="rounded-2xl bg-white p-4 shadow-sm">
             <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
-              Jours précédents (modifiables 7 jours)
+              {t('Jours précédents (modifiables 7 jours)', 'Vorige dagen (7 dagen wijzigbaar)')}
             </h2>
             <ListeVisites visites={precedentes} avecDate />
           </section>
@@ -299,6 +304,7 @@ export default function VisitesAccueilPage() {
 }
 
 function ListeVisites({ visites, avecDate = false }: { visites: Affichage[]; avecDate?: boolean }) {
+  const { t, locale, labelResultat } = useLangue()
   return (
     <ul className="divide-y divide-slate-100">
       {visites.map((v) => {
@@ -309,7 +315,7 @@ function ListeVisites({ visites, avecDate = false }: { visites: Affichage[]; ave
               <p className="truncate text-sm text-slate-500">
                 {[
                   avecDate && v.date
-                    ? new Date(v.date).toLocaleDateString('fr-BE', { weekday: 'short', day: 'numeric', month: 'short' })
+                    ? new Date(v.date).toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' })
                     : null,
                   v.commune,
                 ]
@@ -318,18 +324,18 @@ function ListeVisites({ visites, avecDate = false }: { visites: Affichage[]; ave
               </p>
               {v.enAttente && (
                 <p className={`text-xs ${v.refus ? 'text-red-600' : 'text-amber-700'}`}>
-                  {v.refus ? `Non envoyée : ${v.refus}` : "En attente d'envoi"}
+                  {v.refus ? `${t('Non envoyée', 'Niet verzonden')} : ${v.refus}` : t("En attente d'envoi", 'Wacht op verzending')}
                 </p>
               )}
             </div>
             <div className="flex shrink-0 items-center gap-2 text-right">
               <div>
                 <span className={`rounded-full px-2 py-1 text-xs font-semibold ${BADGE_RESULTAT[v.resultat]}`}>
-                  {LABEL_RESULTAT[v.resultat]}
+                  {labelResultat(v.resultat)}
                 </span>
                 {(!!v.plateaux || !!v.palettes) && (
                   <p className="mt-1 text-xs text-slate-500">
-                    {v.plateaux ? `${v.plateaux} plat.` : ''} {v.palettes ? `${v.palettes} pal.` : ''}
+                    {v.plateaux ? `${v.plateaux} ${t('plat.', 'trays')}` : ''} {v.palettes ? `${v.palettes} pal.` : ''}
                   </p>
                 )}
               </div>

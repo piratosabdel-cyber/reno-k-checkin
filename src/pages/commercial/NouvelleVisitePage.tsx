@@ -11,7 +11,8 @@ import {
   synchroniserVisites,
   type NouveauCommerce,
 } from '../../lib/visitesQueue'
-import { DISTANCE_RECONNAISSANCE_M, LABEL_TYPE, TYPES_COMMERCE } from '../../lib/visites'
+import { DISTANCE_RECONNAISSANCE_M, TYPES_COMMERCE } from '../../lib/visites'
+import { useLangue } from '../../lib/langue'
 import type { Commerce, TypeCommerce } from '../../types/database'
 import AdalaHeader from '../../components/visites/AdalaHeader'
 import CameraCapture from '../../components/visites/CameraCapture'
@@ -33,6 +34,7 @@ function formatDistance(m: number | null) {
 
 export default function NouvelleVisitePage() {
   const { profile } = useAuth()
+  const { t, langue, labelType } = useLangue()
   const navigate = useNavigate()
 
   // Figés à l'ouverture du formulaire.
@@ -71,7 +73,7 @@ export default function NouvelleVisitePage() {
       .catch((e) => {
         setGeoEtat('erreur')
         setGeoRefus(e instanceof GeoErreur && e.code === 'refus')
-        setGeoMessage(messageGeoErreur(e))
+        setGeoMessage(messageGeoErreur(e, langue === 'nl'))
       })
   }
 
@@ -142,13 +144,13 @@ export default function NouvelleVisitePage() {
   }, [adresseGps]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function manque(rapide: boolean): string | null {
-    if (geoRefus) return 'La localisation est refusée : impossible d’enregistrer la visite.'
-    if (!commerce && !nouveau) return 'Choisis le commerce.'
-    if (nouveau && !nouveau.nom.trim()) return 'Indique le nom du commerce.'
-    if (!photo) return 'Prends la photo du commerce.'
-    if (!details.resultat) return 'Choisis le résultat de la visite.'
+    if (geoRefus) return t('La localisation est refusée : impossible d’enregistrer la visite.', 'Locatie geweigerd: het bezoek kan niet opgeslagen worden.')
+    if (!commerce && !nouveau) return t('Choisis le commerce.', 'Kies de zaak.')
+    if (nouveau && !nouveau.nom.trim()) return t('Indique le nom du commerce.', 'Geef de naam van de zaak.')
+    if (!photo) return t('Prends la photo du commerce.', 'Neem een foto van de zaak.')
+    if (!details.resultat) return t('Choisis le résultat de la visite.', 'Kies het resultaat van het bezoek.')
     if (!rapide && details.resultat === 'precommande' && details.plateaux + details.palettes === 0)
-      return 'Indique le nombre de plateaux ou de palettes.'
+      return t('Indique le nombre de plateaux ou de palettes.', 'Geef het aantal trays of paletten.')
     return null
   }
 
@@ -170,13 +172,18 @@ export default function NouvelleVisitePage() {
     } catch (e) {
       if (e instanceof GeoErreur && e.code === 'refus') {
         setGeoRefus(true)
-        setErreur(messageGeoErreur(e))
+        setErreur(messageGeoErreur(e, langue === 'nl'))
         setEnvoi(false)
         return
       }
     }
     if (!posEnvoi && !posOuverture) {
-      setErreur('Impossible de trouver ta position. Sors du commerce ou approche-toi d’une fenêtre, puis réessaie.')
+      setErreur(
+        t(
+          'Impossible de trouver ta position. Sors du commerce ou approche-toi d’une fenêtre, puis réessaie.',
+          'Je positie is niet gevonden. Ga even naar buiten of dicht bij een raam en probeer opnieuw.'
+        )
+      )
       setEnvoi(false)
       return
     }
@@ -223,12 +230,12 @@ export default function NouvelleVisitePage() {
       modele_appareil: navigator.userAgent.slice(0, 200),
     })
 
-    let message = `Visite chez ${nom} enregistrée ✓`
+    let message = t(`Visite chez ${nom} enregistrée ✓`, `Bezoek bij ${nom} opgeslagen ✓`)
     if (navigator.onLine) {
       const { restantes } = await synchroniserVisites(profile.id)
-      if (restantes > 0) message += ' — elle partira dès que le réseau revient.'
+      if (restantes > 0) message += t(' — elle partira dès que le réseau revient.', ' — het wordt verzonden zodra er netwerk is.')
     } else {
-      message += ' — hors connexion, elle partira dès que le réseau revient.'
+      message += t(' — hors connexion, elle partira dès que le réseau revient.', ' — offline, het wordt verzonden zodra er netwerk is.')
     }
     navigate('/visites', { replace: true, state: { message } })
   }
@@ -238,10 +245,10 @@ export default function NouvelleVisitePage() {
   return (
     <div className="min-h-screen bg-slate-100 pb-40">
       <AdalaHeader
-        titre="Nouvelle visite"
+        titre={t('Nouvelle visite', 'Nieuw bezoek')}
         droite={
           <Link to="/visites" className="rounded-lg px-3 py-2 text-sm text-slate-300 active:bg-white/10">
-            Annuler
+            {t('Annuler', 'Annuleren')}
           </Link>
         }
       />
@@ -259,29 +266,30 @@ export default function NouvelleVisitePage() {
                 : 'bg-slate-200 text-slate-700'
           }`}
         >
-          {geoEtat === 'recherche' && '📍 Recherche de ta position…'}
+          {geoEtat === 'recherche' && t('📍 Recherche de ta position…', '📍 Je positie wordt gezocht…')}
           {geoEtat === 'ok' && (
             <>
-              📍 Position trouvée (précision ±{Math.round(posOuverture!.accuracy)} m)
-              {posOuverture!.accuracy > 100 && ' — approche-toi de la vitrine ou sors un instant pour mieux capter.'}
+              📍 {t('Position trouvée (précision', 'Positie gevonden (nauwkeurigheid')} ±{Math.round(posOuverture!.accuracy)} m)
+              {posOuverture!.accuracy > 100 &&
+                t(' — approche-toi de la vitrine ou sors un instant pour mieux capter.', ' — ga dichter bij de etalage of even naar buiten voor beter bereik.')}
             </>
           )}
           {geoEtat === 'erreur' && (
             <div className="space-y-2">
               <p>{geoMessage}</p>
               <button onClick={localiser} className="rounded-lg bg-white px-3 py-2 font-semibold text-red-800">
-                Réessayer
+                {t('Réessayer', 'Opnieuw proberen')}
               </button>
             </div>
           )}
         </div>
 
         {/* 1. Commerce */}
-        <Section titre="Commerce">
+        <Section titre={t('Commerce', 'Zaak')}>
           {suggestion && (
             <div className="mb-3 rounded-xl border-2 border-[#b83a2c] bg-red-50 p-4">
               <p className="text-base text-slate-800">
-                Tu es chez <strong>{suggestion.c.nom}</strong> ?
+                {t('Tu es chez', 'Ben je bij')} <strong>{suggestion.c.nom}</strong> ?
                 <span className="text-sm text-slate-500"> ({formatDistance(suggestion.d)})</span>
               </p>
               <div className="mt-3 flex gap-2">
@@ -289,13 +297,13 @@ export default function NouvelleVisitePage() {
                   onClick={() => choisirCommerce(suggestion.c)}
                   className="min-h-12 flex-1 rounded-xl bg-[#b83a2c] text-lg font-semibold text-white active:opacity-90"
                 >
-                  Oui
+                  {t('Oui', 'Ja')}
                 </button>
                 <button
                   onClick={() => setSuggestionRefusee(true)}
                   className="min-h-12 flex-1 rounded-xl border-2 border-slate-300 bg-white text-lg font-semibold text-slate-700"
                 >
-                  Non
+                  {t('Non', 'Nee')}
                 </button>
               </div>
             </div>
@@ -306,7 +314,7 @@ export default function NouvelleVisitePage() {
               <div className="min-w-0">
                 <p className="truncate text-lg font-semibold text-slate-900">{commerce.nom}</p>
                 <p className="truncate text-sm text-slate-500">
-                  {LABEL_TYPE[commerce.type]}
+                  {labelType(commerce.type)}
                   {commerce.adresse && ` · ${commerce.adresse}`}
                 </p>
               </div>
@@ -314,7 +322,7 @@ export default function NouvelleVisitePage() {
                 onClick={() => setCommerce(null)}
                 className="shrink-0 text-sm font-semibold text-[#b83a2c]"
               >
-                Changer
+                {t('Changer', 'Wijzigen')}
               </button>
             </div>
           ) : nouveau ? (
@@ -322,29 +330,29 @@ export default function NouvelleVisitePage() {
               <input
                 value={nouveau.nom}
                 onChange={(e) => setNouveau({ ...nouveau, nom: e.target.value })}
-                placeholder="Nom du commerce"
+                placeholder={t('Nom du commerce', 'Naam van de zaak')}
                 autoFocus
                 className="w-full rounded-xl border border-slate-300 px-4 py-3 text-lg"
               />
               <input
                 value={nouveau.adresse ?? ''}
                 onChange={(e) => setNouveau({ ...nouveau, adresse: e.target.value || null })}
-                placeholder={navigator.onLine ? 'Adresse (recherche en cours…)' : 'Adresse'}
+                placeholder={navigator.onLine ? t('Adresse (recherche en cours…)', 'Adres (wordt gezocht…)') : t('Adresse', 'Adres')}
                 className="w-full rounded-xl border border-slate-300 px-4 py-3 text-base"
               />
               <div className="flex flex-wrap gap-2">
-                {TYPES_COMMERCE.map((t) => (
+                {TYPES_COMMERCE.map((ty) => (
                   <Puce
-                    key={t.valeur}
-                    actif={nouveau.type === t.valeur}
-                    onClick={() => setNouveau({ ...nouveau, type: t.valeur })}
+                    key={ty.valeur}
+                    actif={nouveau.type === ty.valeur}
+                    onClick={() => setNouveau({ ...nouveau, type: ty.valeur })}
                   >
-                    {t.emoji} {t.label}
+                    {ty.emoji} {labelType(ty.valeur)}
                   </Puce>
                 ))}
               </div>
               <button onClick={() => setNouveau(null)} className="text-sm font-semibold text-slate-500">
-                ← Chercher un commerce existant
+                ← {t('Chercher un commerce existant', 'Een bestaande zaak zoeken')}
               </button>
             </div>
           ) : (
@@ -363,7 +371,7 @@ export default function NouvelleVisitePage() {
               <input
                 value={recherche}
                 onChange={(e) => setRecherche(e.target.value)}
-                placeholder="Nom du commerce…"
+                placeholder={t('Nom du commerce…', 'Naam van de zaak…')}
                 className="w-full rounded-xl border border-slate-300 px-4 py-3 text-lg"
               />
               {resultatsRecherche.map(({ c, d }) => (
@@ -383,22 +391,22 @@ export default function NouvelleVisitePage() {
                 onClick={creerNouveau}
                 className="min-h-12 w-full rounded-xl border-2 border-dashed border-slate-300 text-base font-semibold text-slate-700 active:bg-slate-50"
               >
-                + Nouveau commerce{recherche.trim() && ` « ${recherche.trim()} »`}
+                + {t('Nouveau commerce', 'Nieuwe zaak')}{recherche.trim() && ` « ${recherche.trim()} »`}
               </button>
             </div>
           )}
         </Section>
 
         {/* 2. Photo */}
-        <Section titre="Photo (vitrine, rayon ou frigo)">
+        <Section titre={t('Photo (vitrine, rayon ou frigo)', 'Foto (etalage, rek of koelkast)')}>
           {photo ? (
             <div className="flex items-center gap-4">
-              <img src={photo.url} alt="Photo de la visite" className="h-28 w-28 rounded-xl object-cover" />
+              <img src={photo.url} alt={t('Photo de la visite', 'Foto van het bezoek')} className="h-28 w-28 rounded-xl object-cover" />
               <button
                 onClick={() => setCameraOuverte(true)}
                 className="min-h-12 rounded-xl border-2 border-slate-300 px-4 font-semibold text-slate-700"
               >
-                Reprendre
+                {t('Reprendre', 'Opnieuw nemen')}
               </button>
             </div>
           ) : (
@@ -406,7 +414,7 @@ export default function NouvelleVisitePage() {
               onClick={() => setCameraOuverte(true)}
               className="min-h-16 w-full rounded-xl bg-slate-800 text-lg font-semibold text-white active:bg-slate-900"
             >
-              📷 Prendre la photo
+              📷 {t('Prendre la photo', 'Foto nemen')}
             </button>
           )}
         </Section>
@@ -433,14 +441,14 @@ export default function NouvelleVisitePage() {
             disabled={envoi || geoRefus}
             className="min-h-14 w-full rounded-xl bg-[#b83a2c] text-lg font-bold text-white active:opacity-90 disabled:opacity-50"
           >
-            {envoi ? 'Enregistrement…' : 'Enregistrer la visite'}
+            {envoi ? t('Enregistrement…', 'Opslaan…') : t('Enregistrer la visite', 'Bezoek opslaan')}
           </button>
           <button
             onClick={() => enregistrer(true)}
             disabled={envoi || geoRefus}
             className="w-full py-1 text-sm font-semibold text-slate-500 disabled:opacity-50"
           >
-            Pas le temps ? Enregistrer et compléter plus tard
+            {t('Pas le temps ? Enregistrer et compléter plus tard', 'Geen tijd? Opslaan en later aanvullen')}
           </button>
         </div>
       </div>

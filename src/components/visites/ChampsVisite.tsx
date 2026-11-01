@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import type { ResultatVisite } from '../../types/database'
 import { FONCTIONS_CONTACT, REMARQUES_RAPIDES, RESULTATS, dansNJours } from '../../lib/visites'
+import { tr, useLangue } from '../../lib/langue'
 
 export interface DetailsVisite {
   resultat: ResultatVisite | null
@@ -137,7 +138,7 @@ function Compteur({ label, valeur, onChange }: { label: string; valeur: number; 
       <div className="flex items-center gap-3">
         <button
           type="button"
-          aria-label={`Retirer 1 (${label})`}
+          aria-label={`${tr('Retirer 1', '1 minder')} (${label})`}
           onClick={() => onChange(Math.max(0, valeur - 1))}
           className="h-14 w-14 shrink-0 rounded-xl bg-slate-100 text-3xl font-bold text-slate-700 active:bg-slate-200"
         >
@@ -154,7 +155,7 @@ function Compteur({ label, valeur, onChange }: { label: string; valeur: number; 
         />
         <button
           type="button"
-          aria-label={`Ajouter 1 (${label})`}
+          aria-label={`${tr('Ajouter 1', '1 meer')} (${label})`}
           onClick={() => onChange(valeur + 1)}
           className="h-14 w-14 shrink-0 rounded-xl bg-slate-100 text-3xl font-bold text-slate-700 active:bg-slate-200"
         >
@@ -179,10 +180,10 @@ function Compteur({ label, valeur, onChange }: { label: string; valeur: number; 
   )
 }
 
-const RELANCES: { label: string; jours: number }[] = [
-  { label: '1 semaine', jours: 7 },
-  { label: '2 semaines', jours: 14 },
-  { label: '1 mois', jours: 30 },
+const RELANCES: { label: string; nl: string; jours: number }[] = [
+  { label: '1 semaine', nl: '1 week', jours: 7 },
+  { label: '2 semaines', nl: '2 weken', jours: 14 },
+  { label: '1 mois', nl: '1 maand', jours: 30 },
 ]
 
 /** Résultat, quantités, relance, remarques et contact : tout se fait au toucher. */
@@ -199,6 +200,7 @@ export default function ChampsVisite({
   /** Proposée en un toucher comme adresse de facturation. */
   adresseCommerce?: string | null
 }) {
+  const { t, labelResultat, libelle } = useLangue()
   const [contactOuvert, setContactOuvert] = useState(!contactConnu)
   const [livraisonIdentique, setLivraisonIdentique] = useState(
     !details.adresse_livraison || details.adresse_livraison === details.adresse_facturation
@@ -216,7 +218,7 @@ export default function ChampsVisite({
 
   return (
     <>
-      <Section titre="Résultat">
+      <Section titre={t('Résultat', 'Resultaat')}>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {RESULTATS.map((r) => (
             <Puce
@@ -232,14 +234,14 @@ export default function ChampsVisite({
                 )
               }
             >
-              {r.label}
+              {labelResultat(r.valeur)}
             </Puce>
           ))}
         </div>
 
       </Section>
 
-      <Section titre="Commande">
+      <Section titre={t('Commande', 'Bestelling')}>
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-2">
             {(['plateaux', 'palettes'] as const).map((u) => (
@@ -253,26 +255,28 @@ export default function ChampsVisite({
                   onChange({ ...details, [u]: details[unite], [unite]: 0 })
                 }}
               >
-                {u === 'plateaux' ? '📦 Plateaux de 24' : '🚛 Palettes'}
+                {u === 'plateaux' ? t('📦 Plateaux de 24', '📦 Trays van 24') : t('🚛 Palettes', '🚛 Paletten')}
               </Puce>
             ))}
           </div>
           <Compteur
-            label={unite === 'plateaux' ? 'Nombre de plateaux de 24' : 'Nombre de palettes'}
+            label={unite === 'plateaux' ? t('Nombre de plateaux de 24', 'Aantal trays van 24') : t('Nombre de palettes', 'Aantal paletten')}
             valeur={details[unite]}
             // Une quantité commandée, c'est une précommande.
             onChange={(n) =>
               onChange({ ...details, [unite]: n, ...(n > 0 ? { resultat: 'precommande' as const } : {}) })
             }
           />
-          <p className="text-xs text-slate-400">Une quantité indiquée passe la visite en « Précommande ».</p>
+          <p className="text-xs text-slate-400">
+            {t('Une quantité indiquée passe la visite en « Précommande ».', 'Met een aantal wordt het bezoek een « Voorbestelling ».')}
+          </p>
         </div>
       </Section>
 
-      <Section titre="Relance">
+      <Section titre={t('Relance', 'Opvolging')}>
         <div className="flex flex-wrap gap-2">
           <Puce actif={details.date_relance == null} onClick={() => set('date_relance', null)}>
-            Aucune
+            {t('Aucune', 'Geen')}
           </Puce>
           {RELANCES.map((r) => (
             <Puce
@@ -280,7 +284,7 @@ export default function ChampsVisite({
               actif={relanceChoisie?.jours === r.jours}
               onClick={() => set('date_relance', dansNJours(r.jours))}
             >
-              {r.label}
+              {t(r.label, r.nl)}
             </Puce>
           ))}
           <input
@@ -293,11 +297,11 @@ export default function ChampsVisite({
         </div>
       </Section>
 
-      <Section titre="Remarques">
+      <Section titre={t('Remarques', 'Opmerkingen')}>
         <div className="flex flex-wrap gap-2">
           {REMARQUES_RAPIDES.map((r) => (
             <Puce key={r} actif={details.remarques.includes(r)} onClick={() => basculerRemarque(r)}>
-              {r}
+              {libelle(r)}
             </Puce>
           ))}
         </div>
@@ -305,12 +309,12 @@ export default function ChampsVisite({
           value={details.commentaire}
           onChange={(e) => set('commentaire', e.target.value)}
           rows={2}
-          placeholder="Autre chose ? (micro 🎤 du clavier pour dicter)"
+          placeholder={t('Autre chose ? (micro 🎤 du clavier pour dicter)', 'Nog iets? (🎤 van het toetsenbord om te dicteren)')}
           className="mt-3 w-full rounded-xl border border-slate-300 px-4 py-3 text-base"
         />
       </Section>
 
-      <Section titre="Contact client">
+      <Section titre={t('Contact client', 'Contact klant')}>
         {!contactOuvert ? (
           <button
             type="button"
@@ -318,15 +322,15 @@ export default function ChampsVisite({
             className="flex w-full items-center justify-between rounded-xl border border-slate-200 px-4 py-3 text-left"
           >
             <span className="text-base text-slate-800">
-              {details.contact_nom || 'Contact'}
-              {details.contact_fonction && <span className="text-slate-500"> · {details.contact_fonction}</span>}
+              {details.contact_nom || t('Contact', 'Contact')}
+              {details.contact_fonction && <span className="text-slate-500"> · {libelle(details.contact_fonction)}</span>}
               {details.contact_telephone && <span className="text-slate-500"> · {details.contact_telephone}</span>}
             </span>
-            <span className="text-sm font-semibold text-[#b83a2c]">Modifier</span>
+            <span className="text-sm font-semibold text-[#b83a2c]">{t('Modifier', 'Wijzigen')}</span>
           </button>
         ) : (
           <div className="space-y-3">
-            <ChampIcone icone="personne" valeur={details.contact_nom} onValeur={(v) => set('contact_nom', v)} placeholder="Nom du contact" />
+            <ChampIcone icone="personne" valeur={details.contact_nom} onValeur={(v) => set('contact_nom', v)} placeholder={t('Nom du contact', 'Naam contactpersoon')} />
             <div className="flex flex-wrap gap-2">
               {FONCTIONS_CONTACT.map((f) => (
                 <Puce
@@ -334,22 +338,22 @@ export default function ChampsVisite({
                   actif={details.contact_fonction === f}
                   onClick={() => set('contact_fonction', details.contact_fonction === f ? '' : f)}
                 >
-                  {f}
+                  {libelle(f)}
                 </Puce>
               ))}
             </div>
-            <ChampIcone icone="telephone" type="tel" inputMode="tel" valeur={details.contact_telephone} onValeur={(v) => set('contact_telephone', v)} placeholder="Téléphone" />
-            <ChampIcone icone="mail" type="email" inputMode="email" autoCapitalize="none" valeur={details.contact_email} onValeur={(v) => set('contact_email', v)} placeholder="E-mail" />
+            <ChampIcone icone="telephone" type="tel" inputMode="tel" valeur={details.contact_telephone} onValeur={(v) => set('contact_telephone', v)} placeholder={t('Téléphone', 'Telefoon')} />
+            <ChampIcone icone="mail" type="email" inputMode="email" autoCapitalize="none" valeur={details.contact_email} onValeur={(v) => set('contact_email', v)} placeholder={t('E-mail', 'E-mail')} />
 
-            <ChampIcone icone="entreprise" valeur={details.numero_entreprise} onValeur={(v) => set('numero_entreprise', v)} placeholder="N° d'entreprise (BCE)" />
-            <ChampIcone icone="facture" lignes={2} valeur={details.adresse_facturation} onValeur={(v) => onChange({ ...details, adresse_facturation: v, ...(livraisonIdentique ? { adresse_livraison: v } : {}) })} placeholder="Adresse de facturation" />
+            <ChampIcone icone="entreprise" valeur={details.numero_entreprise} onValeur={(v) => set('numero_entreprise', v)} placeholder={t("N° d'entreprise (BCE)", 'Ondernemingsnummer (KBO)')} />
+            <ChampIcone icone="facture" lignes={2} valeur={details.adresse_facturation} onValeur={(v) => onChange({ ...details, adresse_facturation: v, ...(livraisonIdentique ? { adresse_livraison: v } : {}) })} placeholder={t('Adresse de facturation', 'Facturatieadres')} />
             {adresseCommerce && !details.adresse_facturation && (
               <button
                 type="button"
                 onClick={() => onChange({ ...details, adresse_facturation: adresseCommerce, ...(livraisonIdentique ? { adresse_livraison: adresseCommerce } : {}) })}
                 className="min-h-11 rounded-xl border-2 border-slate-200 px-4 text-sm font-medium text-slate-700"
               >
-                📍 Reprendre l'adresse du commerce
+                📍 {t("Reprendre l'adresse du commerce", 'Adres van de zaak overnemen')}
               </button>
             )}
             <button
@@ -366,12 +370,14 @@ export default function ChampsVisite({
               <span className={`relative h-7 w-12 shrink-0 rounded-full transition ${livraisonIdentique ? 'bg-[#b83a2c]' : 'bg-slate-300'}`}>
                 <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-all ${livraisonIdentique ? 'left-6' : 'left-1'}`} />
               </span>
-              <span className="text-base text-slate-800">Adresse de livraison identique à la facturation</span>
+              <span className="text-base text-slate-800">
+                {t('Adresse de livraison identique à la facturation', 'Leveringsadres zelfde als facturatieadres')}
+              </span>
             </button>
             {!livraisonIdentique && (
-              <ChampIcone icone="livraison" lignes={2} valeur={details.adresse_livraison} onValeur={(v) => set('adresse_livraison', v)} placeholder="Adresse de livraison" />
+              <ChampIcone icone="livraison" lignes={2} valeur={details.adresse_livraison} onValeur={(v) => set('adresse_livraison', v)} placeholder={t('Adresse de livraison', 'Leveringsadres')} />
             )}
-            <ChampIcone icone="reseau" inputMode="url" autoCapitalize="none" valeur={details.reseau_social} onValeur={(v) => set('reseau_social', v)} placeholder="Réseaux sociaux (Instagram, Facebook…)" />
+            <ChampIcone icone="reseau" inputMode="url" autoCapitalize="none" valeur={details.reseau_social} onValeur={(v) => set('reseau_social', v)} placeholder={t('Réseaux sociaux (Instagram, Facebook…)', 'Sociale media (Instagram, Facebook…)')} />
           </div>
         )}
       </Section>

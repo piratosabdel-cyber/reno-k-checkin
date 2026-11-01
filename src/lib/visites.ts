@@ -1,30 +1,30 @@
 import type { ResultatVisite, StatutCommerce, TypeCommerce } from '../types/database'
 
-export const TYPES_COMMERCE: { valeur: TypeCommerce; label: string; emoji: string }[] = [
-  { valeur: 'epicerie', label: 'Épicerie', emoji: '🛒' },
-  { valeur: 'superette', label: 'Supérette', emoji: '🏪' },
-  { valeur: 'night_shop', label: 'Night shop', emoji: '🌙' },
-  { valeur: 'snack', label: 'Snack', emoji: '🥙' },
-  { valeur: 'boucherie', label: 'Boucherie', emoji: '🥩' },
-  { valeur: 'restaurant', label: 'Restaurant', emoji: '🍽️' },
-  { valeur: 'cafe_chicha', label: 'Café / chicha', emoji: '☕' },
-  { valeur: 'catering', label: 'Catering', emoji: '🍱' },
-  { valeur: 'grossiste', label: 'Distributeur / grossiste', emoji: '🚚' },
-  { valeur: 'supermarche', label: 'Supermarché', emoji: '🏬' },
-  { valeur: 'autre', label: 'Autre', emoji: '📍' },
+export const TYPES_COMMERCE: { valeur: TypeCommerce; label: string; nl: string; emoji: string }[] = [
+  { valeur: 'epicerie', nl: 'Kruidenier', label: 'Épicerie', emoji: '🛒' },
+  { valeur: 'superette', nl: 'Buurtwinkel', label: 'Supérette', emoji: '🏪' },
+  { valeur: 'night_shop', nl: 'Nachtwinkel', label: 'Night shop', emoji: '🌙' },
+  { valeur: 'snack', nl: 'Snackbar', label: 'Snack', emoji: '🥙' },
+  { valeur: 'boucherie', nl: 'Slagerij', label: 'Boucherie', emoji: '🥩' },
+  { valeur: 'restaurant', nl: 'Restaurant', label: 'Restaurant', emoji: '🍽️' },
+  { valeur: 'cafe_chicha', nl: 'Café / shisha', label: 'Café / chicha', emoji: '☕' },
+  { valeur: 'catering', nl: 'Catering', label: 'Catering', emoji: '🍱' },
+  { valeur: 'grossiste', nl: 'Verdeler / groothandel', label: 'Distributeur / grossiste', emoji: '🚚' },
+  { valeur: 'supermarche', nl: 'Supermarkt', label: 'Supermarché', emoji: '🏬' },
+  { valeur: 'autre', nl: 'Andere', label: 'Autre', emoji: '📍' },
 ]
 
 export const LABEL_TYPE: Record<TypeCommerce, string> = Object.fromEntries(
   TYPES_COMMERCE.map((t) => [t.valeur, t.label])
 ) as Record<TypeCommerce, string>
 
-export const RESULTATS: { valeur: ResultatVisite; label: string; couleur: string }[] = [
-  { valeur: 'precommande', label: 'Précommande', couleur: 'bg-emerald-600 text-white border-emerald-600' },
-  { valeur: 'interesse', label: 'Intéressé', couleur: 'bg-sky-600 text-white border-sky-600' },
-  { valeur: 'echantillon', label: 'Échantillon déposé', couleur: 'bg-violet-600 text-white border-violet-600' },
-  { valeur: 'a_revoir', label: 'À revoir', couleur: 'bg-amber-500 text-white border-amber-500' },
-  { valeur: 'refus', label: 'Refus', couleur: 'bg-red-600 text-white border-red-600' },
-  { valeur: 'absent', label: 'Absent / fermé', couleur: 'bg-slate-600 text-white border-slate-600' },
+export const RESULTATS: { valeur: ResultatVisite; label: string; nl: string; couleur: string }[] = [
+  { valeur: 'precommande', nl: 'Voorbestelling', label: 'Précommande', couleur: 'bg-emerald-600 text-white border-emerald-600' },
+  { valeur: 'interesse', nl: 'Geïnteresseerd', label: 'Intéressé', couleur: 'bg-sky-600 text-white border-sky-600' },
+  { valeur: 'echantillon', nl: 'Staal achtergelaten', label: 'Échantillon déposé', couleur: 'bg-violet-600 text-white border-violet-600' },
+  { valeur: 'a_revoir', nl: 'Opnieuw bezoeken', label: 'À revoir', couleur: 'bg-amber-500 text-white border-amber-500' },
+  { valeur: 'refus', nl: 'Weigering', label: 'Refus', couleur: 'bg-red-600 text-white border-red-600' },
+  { valeur: 'absent', nl: 'Afwezig / gesloten', label: 'Absent / fermé', couleur: 'bg-slate-600 text-white border-slate-600' },
 ]
 
 export const LABEL_RESULTAT: Record<ResultatVisite, string> = Object.fromEntries(
@@ -39,6 +39,15 @@ export const BADGE_RESULTAT: Record<ResultatVisite, string> = {
   refus: 'bg-red-100 text-red-800',
   absent: 'bg-slate-200 text-slate-700',
 }
+
+/** Libellés néerlandais (l'app commerciale peut être en NL). */
+export const LABEL_TYPE_NL: Record<TypeCommerce, string> = Object.fromEntries(
+  TYPES_COMMERCE.map((t) => [t.valeur, t.nl])
+) as Record<TypeCommerce, string>
+
+export const LABEL_RESULTAT_NL: Record<ResultatVisite, string> = Object.fromEntries(
+  RESULTATS.map((r) => [r.valeur, r.nl])
+) as Record<ResultatVisite, string>
 
 export const LABEL_STATUT: Record<StatutCommerce, string> = {
   prospect: 'Prospect',
@@ -61,6 +70,27 @@ export const REMARQUES_RAPIDES = [
   'Intéressé par le verre',
   'Paiement à la livraison',
 ]
+
+/**
+ * Les remarques et fonctions sont enregistrées en français (admin, mail,
+ * Drive) ; seul l'affichage passe en néerlandais.
+ */
+export const NL: Record<string, string> = {
+  Gérant: 'Zaakvoerder',
+  Propriétaire: 'Eigenaar',
+  Employé: 'Werknemer',
+  'Responsable achats': 'Aankoopverantwoordelijke',
+  'Prix trop élevé': 'Prijs te hoog',
+  'Veut un présentoir / frigo': 'Wil een display / koelkast',
+  'Veut goûter d’abord': 'Wil eerst proeven',
+  'Rappeler le gérant': 'Zaakvoerder terugbellen',
+  'Déjà un fournisseur cola': 'Heeft al een colaleverancier',
+  'Bon emplacement en vitrine': 'Goede plaats in de etalage',
+  'Intéressé par les canettes': 'Interesse in blikjes',
+  'Intéressé par les bouteilles PET': 'Interesse in PET-flessen',
+  'Intéressé par le verre': 'Interesse in glas',
+  'Paiement à la livraison': 'Betaling bij levering',
+}
 
 export const LABEL_ALERTE: Record<string, string> = {
   sans_gps: 'Sans GPS',

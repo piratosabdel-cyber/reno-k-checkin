@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { appelServeur, demanderArchivageDrive } from '../../lib/visitesQueue'
 import { TYPES_COMMERCE } from '../../lib/visites'
+import { useLangue } from '../../lib/langue'
 import type { TypeCommerce, Visite } from '../../types/database'
 import AdalaHeader from '../../components/visites/AdalaHeader'
 import ChampsVisite, { DETAILS_VIDES, Puce, Section, adresseComplete, type DetailsVisite } from '../../components/visites/ChampsVisite'
@@ -28,6 +29,7 @@ interface VisiteChargee extends Visite {
 export default function CompleterVisitePage() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { t, locale, labelType } = useLangue()
   const [visite, setVisite] = useState<VisiteChargee | null>(null)
   const [photo, setPhoto] = useState<string | null>(null)
   const [nom, setNom] = useState('')
@@ -45,7 +47,11 @@ export default function CompleterVisitePage() {
       .single()
       .then(async ({ data, error }) => {
         if (error || !data) {
-          setErreur(navigator.onLine ? 'Visite introuvable.' : 'Connecte-toi à internet pour ouvrir cette visite.')
+          setErreur(
+            navigator.onLine
+              ? t('Visite introuvable.', 'Bezoek niet gevonden.')
+              : t('Connecte-toi à internet pour ouvrir cette visite.', 'Maak verbinding met internet om dit bezoek te openen.')
+          )
           return
         }
         const v = data as VisiteChargee
@@ -79,11 +85,11 @@ export default function CompleterVisitePage() {
   async function enregistrer() {
     if (!details || !visite) return
     if (!nom.trim()) {
-      setErreur('Indique le nom du commerce.')
+      setErreur(t('Indique le nom du commerce.', 'Geef de naam van de zaak.'))
       return
     }
     if (details.resultat === 'precommande' && details.plateaux + details.palettes === 0) {
-      setErreur('Indique le nombre de plateaux ou de palettes.')
+      setErreur(t('Indique le nombre de plateaux ou de palettes.', 'Geef het aantal trays of paletten.'))
       return
     }
     setEnvoi(true)
@@ -93,7 +99,7 @@ export default function CompleterVisitePage() {
       const { error } = await supabase.rpc('modifier_commerce_visite', { p_visite: visite.id, p_nom: nom, p_type: type })
       if (error) {
         setEnvoi(false)
-        setErreur(navigator.onLine ? `Commerce non modifié (${error.message}).` : 'Pas de connexion : réessaie dans un instant.')
+        setErreur(navigator.onLine ? `${t('Commerce non modifié', 'Zaak niet gewijzigd')} (${error.message}).` : t('Pas de connexion : réessaie dans un instant.', 'Geen verbinding: probeer zo opnieuw.'))
         return
       }
     }
@@ -124,24 +130,32 @@ export default function CompleterVisitePage() {
       .select('id')
     setEnvoi(false)
     if (error) {
-      setErreur(navigator.onLine ? `Enregistrement refusé (${error.message}).` : 'Pas de connexion : réessaie dans un instant.')
+      setErreur(navigator.onLine ? `${t('Enregistrement refusé', 'Opslaan geweigerd')} (${error.message}).` : t('Pas de connexion : réessaie dans un instant.', 'Geen verbinding: probeer zo opnieuw.'))
       return
     }
     // Sans ligne renvoyée, la base a refusé (délai de 7 jours dépassé).
     if (!maj?.length) {
-      setErreur('Cette visite ne peut plus être modifiée.')
+      setErreur(t('Cette visite ne peut plus être modifiée.', 'Dit bezoek kan niet meer gewijzigd worden.'))
       return
     }
     demanderArchivageDrive()
     navigate('/visites', {
       replace: true,
-      state: { message: `Visite chez ${nom.trim()} ${visite.a_completer ? 'complétée' : 'modifiée'} ✓` },
+      state: {
+        message: visite.a_completer
+          ? t(`Visite chez ${nom.trim()} complétée ✓`, `Bezoek bij ${nom.trim()} aangevuld ✓`)
+          : t(`Visite chez ${nom.trim()} modifiée ✓`, `Bezoek bij ${nom.trim()} gewijzigd ✓`),
+      },
     })
   }
 
   async function effacer() {
     if (!visite) return
-    if (!window.confirm(`Effacer la visite chez ${visite.commerce.nom} ?\n\nLa visite et sa photo seront supprimées.`)) return
+    const question = t(
+      `Effacer la visite chez ${visite.commerce.nom} ?\n\nLa visite et sa photo seront supprimées.`,
+      `Bezoek bij ${visite.commerce.nom} wissen?\n\nHet bezoek en de foto worden verwijderd.`
+    )
+    if (!window.confirm(question)) return
     setEnvoi(true)
     const r = await appelServeur('/api/supprimer-visite', { id: visite.id })
     setEnvoi(false)
@@ -149,11 +163,11 @@ export default function CompleterVisitePage() {
       setErreur(r.erreur)
       return
     }
-    navigate('/visites', { replace: true, state: { message: `Visite chez ${visite.commerce.nom} effacée` } })
+    navigate('/visites', { replace: true, state: { message: t(`Visite chez ${visite.commerce.nom} effacée`, `Bezoek bij ${visite.commerce.nom} gewist`) } })
   }
 
   const date = visite
-    ? new Date(visite.heure_appareil).toLocaleString('fr-BE', {
+    ? new Date(visite.heure_appareil).toLocaleString(locale, {
         weekday: 'long',
         day: 'numeric',
         month: 'long',
@@ -165,10 +179,10 @@ export default function CompleterVisitePage() {
   return (
     <div className="min-h-screen bg-slate-100 pb-40">
       <AdalaHeader
-        titre={visite ? visite.commerce.nom : 'Visite'}
+        titre={visite ? visite.commerce.nom : t('Visite', 'Bezoek')}
         droite={
           <Link to="/visites" className="rounded-lg px-3 py-2 text-sm text-slate-300">
-            Retour
+            {t('Retour', 'Terug')}
           </Link>
         }
       />
@@ -177,7 +191,7 @@ export default function CompleterVisitePage() {
           <section className="overflow-hidden rounded-2xl bg-white shadow-sm">
             {photo ? (
               <a href={photo} target="_blank" rel="noreferrer">
-                <img src={photo} alt="Photo de la visite" className="max-h-80 w-full bg-slate-200 object-contain" />
+                <img src={photo} alt={t('Photo de la visite', 'Foto van het bezoek')} className="max-h-80 w-full bg-slate-200 object-contain" />
               </a>
             ) : (
               <div className="flex h-40 items-center justify-center bg-slate-200 text-slate-500">Photo…</div>
@@ -187,30 +201,30 @@ export default function CompleterVisitePage() {
               <p className="text-slate-800">
                 📍 {adresseAffichee(visite)}
               </p>
-              <p className="text-xs text-slate-400">La photo et l'adresse ne se modifient pas.</p>
+              <p className="text-xs text-slate-400">{t("La photo et l'adresse ne se modifient pas.", 'Foto en adres kunnen niet gewijzigd worden.')}</p>
             </div>
           </section>
         )}
 
         {visite && !modifiable && (
           <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            Cette visite a plus de 7 jours : elle ne peut plus être modifiée.
+            {t('Cette visite a plus de 7 jours : elle ne peut plus être modifiée.', 'Dit bezoek is ouder dan 7 dagen: het kan niet meer gewijzigd worden.')}
           </p>
         )}
 
         {details && modifiable && (
           <>
-            <Section titre="Commerce">
+            <Section titre={t('Commerce', 'Zaak')}>
               <input
                 value={nom}
                 onChange={(e) => setNom(e.target.value)}
-                placeholder="Nom du commerce"
+                placeholder={t('Nom du commerce', 'Naam van de zaak')}
                 className="mb-3 w-full rounded-xl border border-slate-300 px-4 py-3 text-lg"
               />
               <div className="flex flex-wrap gap-2">
-                {TYPES_COMMERCE.map((t) => (
-                  <Puce key={t.valeur} actif={type === t.valeur} onClick={() => setType(t.valeur)}>
-                    {t.emoji} {t.label}
+                {TYPES_COMMERCE.map((ty) => (
+                  <Puce key={ty.valeur} actif={type === ty.valeur} onClick={() => setType(ty.valeur)}>
+                    {ty.emoji} {labelType(ty.valeur)}
                   </Puce>
                 ))}
               </div>
@@ -226,11 +240,11 @@ export default function CompleterVisitePage() {
               disabled={envoi}
               className="w-full rounded-xl border-2 border-red-200 bg-white py-3 font-semibold text-red-700 disabled:opacity-50"
             >
-              🗑 Effacer cette visite
+              🗑 {t('Effacer cette visite', 'Dit bezoek wissen')}
             </button>
           </>
         )}
-        {!visite && !erreur && <p className="py-10 text-center text-slate-400">Chargement…</p>}
+        {!visite && !erreur && <p className="py-10 text-center text-slate-400">{t('Chargement…', 'Laden…')}</p>}
       </main>
       <div className="fixed inset-x-0 bottom-0 z-[600] border-t border-slate-200 bg-white/95 px-3 py-3">
         <div className="mx-auto max-w-3xl space-y-2">
@@ -245,7 +259,7 @@ export default function CompleterVisitePage() {
               disabled={envoi}
               className="min-h-14 w-full rounded-xl bg-[#b83a2c] text-lg font-bold text-white disabled:opacity-50"
             >
-              {envoi ? 'Enregistrement…' : 'Enregistrer'}
+              {envoi ? t('Enregistrement…', 'Opslaan…') : t('Enregistrer', 'Opslaan')}
             </button>
           )}
         </div>
