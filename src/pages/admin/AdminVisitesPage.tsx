@@ -23,7 +23,7 @@ const ONGLETS: { id: Onglet; label: string }[] = [
   { id: 'liste', label: 'Liste' },
   { id: 'carte', label: 'Carte du jour' },
   { id: 'stats', label: 'Statistiques' },
-  { id: 'equipe', label: 'Ã‰quipe' },
+  { id: 'equipe', label: 'Équipe' },
 ]
 
 function finJour(date: string) {
@@ -97,7 +97,7 @@ export default function AdminVisitesPage() {
     [visites, type, resultat, filtreAlerte]
   )
 
-  // On n'envoie que des visites visibles : une case cochÃ©e puis filtrÃ©e ne compte plus.
+  // On n'envoie que des visites visibles : une case cochée puis filtrée ne compte plus.
   const selection = filtrees.filter((v) => cochees.has(v.id))
   const aEnvoyer = selection.length > 0 ? selection : filtrees
   const toutCoche = filtrees.length > 0 && selection.length === filtrees.length
@@ -120,14 +120,14 @@ export default function AdminVisitesPage() {
       du === au ? `le ${fr(du)}` : `du ${fr(du)} au ${fr(au)}`,
     ]
       .filter(Boolean)
-      .join(' â€” ')
-    if (!window.confirm(`Envoyer ${aEnvoyer.length} visite(s) Ã  order@adalacola.com ?\n\nÂ« ${titre} Â»`)) return
+      .join(' — ')
+    if (!window.confirm(`Envoyer ${aEnvoyer.length} visite(s) à order@adalacola.com ?\n\n« ${titre} »`)) return
     setEnvoi({ enCours: true, message: null, ok: true })
     const r = await appelAdmin('/api/envoyer-liste', { ids: aEnvoyer.map((v) => v.id), titre })
     setEnvoi(
       r.erreur
         ? { enCours: false, message: `Envoi impossible : ${r.erreur}`, ok: false }
-        : { enCours: false, message: `${aEnvoyer.length} visite(s) envoyÃ©e(s) Ã  order@adalacola.com âœ“`, ok: true }
+        : { enCours: false, message: `${aEnvoyer.length} visite(s) envoyée(s) à order@adalacola.com ✓`, ok: true }
     )
     if (!r.erreur) setCochees(new Set())
   }
@@ -139,7 +139,7 @@ export default function AdminVisitesPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-slate-900">Visites commerciales</h1>
         <Link to="/admin/commerces" className="text-sm font-semibold text-orange-700 hover:underline">
-          Tous les commerces â†’
+          Tous les commerces →
         </Link>
       </div>
 
@@ -181,7 +181,7 @@ export default function AdminVisitesPage() {
               onChange={(e) => setResultat(e.target.value as ResultatVisite | '')}
               className={champ}
             >
-              <option value="">Tous les rÃ©sultats</option>
+              <option value="">Tous les résultats</option>
               {RESULTATS.map((r) => (
                 <option key={r.valeur} value={r.valeur}>
                   {r.label}
@@ -211,16 +211,16 @@ export default function AdminVisitesPage() {
                 className="rounded-lg bg-[#b83a2c] px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
               >
                 {envoi.enCours
-                  ? 'Envoiâ€¦'
+                  ? 'Envoi…'
                   : selection.length > 0
-                    ? `âœ‰ Envoyer la sÃ©lection (${selection.length}) Ã  order@`
-                    : `âœ‰ Envoyer la liste (${filtrees.length}) Ã  order@`}
+                    ? `✉ Envoyer la sélection (${selection.length}) à order@`
+                    : `✉ Envoyer la liste (${filtrees.length}) à order@`}
               </button>
             </div>
           </div>
 
           <p className="-mt-2 text-xs text-slate-500">
-            Coche des visites pour n'envoyer qu'elles ; sinon, toute la liste affichÃ©e (avec ses filtres) est envoyÃ©e.
+            Coche des visites pour n'envoyer qu'elles ; sinon, toute la liste affichée (avec ses filtres) est envoyée.
           </p>
 
           {envoi.message && (
@@ -247,10 +247,10 @@ export default function AdminVisitesPage() {
                   </th>
                   <th className="px-3 py-3">Date</th>
                   <th className="px-3 py-3">Heure</th>
-                  <th className="px-3 py-3">DurÃ©e</th>
+                  <th className="px-3 py-3">Durée</th>
                   <th className="px-3 py-3">Commerce</th>
                   <th className="px-3 py-3">Type</th>
-                  <th className="px-3 py-3">RÃ©sultat</th>
+                  <th className="px-3 py-3">Résultat</th>
                   <th className="px-3 py-3">Alertes</th>
                 </tr>
               </thead>
@@ -258,13 +258,13 @@ export default function AdminVisitesPage() {
                 {chargement ? (
                   <tr>
                     <td colSpan={8} className="px-3 py-8 text-center text-slate-400">
-                      Chargementâ€¦
+                      Chargement…
                     </td>
                   </tr>
                 ) : filtrees.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="px-3 py-8 text-center text-slate-400">
-                      Aucune visite sur cette pÃ©riode.
+                      Aucune visite sur cette période.
                     </td>
                   </tr>
                 ) : (
@@ -283,8 +283,8 @@ export default function AdminVisitesPage() {
                       <td className="whitespace-nowrap px-3 py-3">
                         {heure(v.heure_serveur)}
                         {v.synchro_differee && (
-                          <span className="ml-1 rounded bg-slate-200 px-1 text-xs text-slate-600" title="SynchronisÃ©e en diffÃ©rÃ©">
-                            diffÃ©rÃ©
+                          <span className="ml-1 rounded bg-slate-200 px-1 text-xs text-slate-600" title="Synchronisée en différé">
+                            différé
                           </span>
                         )}
                       </td>
@@ -293,12 +293,12 @@ export default function AdminVisitesPage() {
                         <Link to={`/admin/visites/${v.id}`} className="font-medium text-slate-900 hover:underline">
                           {v.commerce?.nom}
                         </Link>
-                        {v.commerce?.commune && <span className="text-slate-400"> Â· {v.commerce.commune}</span>}
+                        {v.commerce?.commune && <span className="text-slate-400"> · {v.commerce.commune}</span>}
                         {v.a_completer && (
-                          <span className="ml-2 rounded bg-amber-100 px-1 text-xs text-amber-800">Ã  complÃ©ter</span>
+                          <span className="ml-2 rounded bg-amber-100 px-1 text-xs text-amber-800">à compléter</span>
                         )}
                         {v.modifiee_le && (
-                          <span className="ml-2 rounded bg-slate-200 px-1 text-xs text-slate-600">modifiÃ©e</span>
+                          <span className="ml-2 rounded bg-slate-200 px-1 text-xs text-slate-600">modifiée</span>
                         )}
                       </td>
                       <td className="whitespace-nowrap px-3 py-3 text-slate-600">
@@ -319,7 +319,7 @@ export default function AdminVisitesPage() {
                               title={a.detail}
                               className="rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-900"
                             >
-                              âš  {LABEL_ALERTE[a.code] ?? a.code}
+                              ⚠ {LABEL_ALERTE[a.code] ?? a.code}
                             </span>
                           ))}
                         </div>
@@ -344,12 +344,12 @@ export default function AdminVisitesPage() {
             <input type="date" value={jour} onChange={(e) => setJour(e.target.value)} className={champ} />
             {visitesJour.length > 0 ? (
               <p className="text-sm text-slate-700">
-                <strong>{visitesJour.length}</strong> visite{visitesJour.length > 1 ? 's' : ''} â€” premiÃ¨re Ã {' '}
-                <strong>{heure(visitesJour[0].heure_ouverture ?? visitesJour[0].heure_appareil)}</strong>, derniÃ¨re
-                terminÃ©e Ã  <strong>{heure(visitesJour[visitesJour.length - 1].heure_appareil)}</strong>
+                <strong>{visitesJour.length}</strong> visite{visitesJour.length > 1 ? 's' : ''} — première à{' '}
+                <strong>{heure(visitesJour[0].heure_ouverture ?? visitesJour[0].heure_appareil)}</strong>, dernière
+                terminée à <strong>{heure(visitesJour[visitesJour.length - 1].heure_appareil)}</strong>
               </p>
             ) : (
-              <p className="text-sm text-slate-400">Aucune visite ce jour-lÃ .</p>
+              <p className="text-sm text-slate-400">Aucune visite ce jour-là.</p>
             )}
           </div>
           <VisitesMap visites={visitesJour} photos={photosJour} />
