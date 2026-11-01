@@ -323,20 +323,37 @@ async function archiverVisite(db: SupabaseClient, drive: Drive, visiteId: string
     })
     .eq('id', v.id)
 
-  // Fiche du commerce, régénérée avec tout l'historique.
+  await rafraichirFiche(db, drive, c.id)
+}
+
+/** Fiche du commerce, régénérée avec tout l'historique. */
+async function rafraichirFiche(db: SupabaseClient, drive: Drive, commerceId: string) {
+  const { data: cData } = await db.from('commerces').select('*').eq('id', commerceId).single()
+  const c = cData as CommerceComplet | null
+  if (!c?.drive_dossier_id) return
   const { data: historique } = await db
     .from('visites')
     .select(SELECT_VISITE)
     .eq('commerce_id', c.id)
     .order('heure_serveur', { ascending: false })
-  const { data: cFrais } = await db.from('commerces').select('*').eq('id', c.id).single()
   const ficheId = await drive.documentAJour(
     c.drive_fiche_id,
     `Fiche commerce — ${c.nom}`,
-    c.drive_dossier_id!,
-    ficheHtml(cFrais as CommerceComplet, (historique as unknown as VisiteComplete[]) ?? [])
+    c.drive_dossier_id,
+    ficheHtml(c, (historique as unknown as VisiteComplete[]) ?? [])
   )
   if (ficheId !== c.drive_fiche_id) await db.from('commerces').update({ drive_fiche_id: ficheId }).eq('id', c.id)
+}
+
+/**
+ * Après la suppression d'une visite : son dossier Drive part à la corbeille
+ * (récupérable 30 jours) et la fiche du commerce est mise à jour.
+ */
+export async function retirerVisiteDuDrive(db: SupabaseClient, dossierId: string | null, commerceId: string) {
+  if (!(await driveConfigure(db))) return
+  const drive = await Drive.connecter(db)
+  if (dossierId) await drive.corbeille(dossierId)
+  await rafraichirFiche(db, drive, commerceId)
 }
 
 /**

@@ -1,11 +1,13 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { MapContainer, TileLayer, CircleMarker, Circle, Popup, Polyline } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import { supabase } from '../../lib/supabase'
 import type { VisiteAvecRelations } from '../../types/database'
 import { BADGE_RESULTAT, LABEL_RESULTAT, LABEL_STATUT, LABEL_TYPE } from '../../lib/visites'
-import { SELECT_VISITE, duree, heure, liensPhotos, lienCarte, lienDrive } from '../../lib/visitesAdmin'
+import { SELECT_VISITE, appelAdmin, duree, heure, liensPhotos, lienCarte, lienDrive } from '../../lib/visitesAdmin'
+import { demanderArchivageDrive } from '../../lib/visitesQueue'
+import ChampsVisite, { DETAILS_VIDES, type DetailsVisite } from '../../components/visites/ChampsVisite'
 
 function Ligne({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -18,30 +20,105 @@ function Ligne({ label, children }: { label: string; children: ReactNode }) {
 
 export default function AdminVisiteFichePage() {
   const { id } = useParams()
+  const navigate = useNavigate()
   const [v, setV] = useState<VisiteAvecRelations | null>(null)
   const [photo, setPhoto] = useState<string | null>(null)
   const [introuvable, setIntrouvable] = useState(false)
+  const [edition, setEdition] = useState<DetailsVisite | null>(null)
+  const [occupe, setOccupe] = useState(false)
+  const [erreur, setErreur] = useState<string | null>(null)
+
+  async function charger() {
+    const { data } = await supabase.from('visites').select(SELECT_VISITE).eq('id', id!).single()
+    if (!data) {
+      setIntrouvable(true)
+      return
+    }
+    const visite = data as unknown as VisiteAvecRelations
+    setV(visite)
+    const liens = await liensPhotos([visite.photo_path])
+    setPhoto(liens[visite.photo_path] ?? null)
+  }
 
   useEffect(() => {
-    supabase
-      .from('visites')
-      .select(SELECT_VISITE)
-      .eq('id', id!)
-      .single()
-      .then(async ({ data }) => {
-        if (!data) {
-          setIntrouvable(true)
-          return
-        }
-        const visite = data as unknown as VisiteAvecRelations
-        setV(visite)
-        const liens = await liensPhotos([visite.photo_path])
-        setPhoto(liens[visite.photo_path] ?? null)
-      })
-  }, [id])
+    charger()
+  }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (introuvable) return <p className="text-slate-500">Visite introuvable.</p>
   if (!v) return <p className="text-slate-400">Chargement…</p>
+
+  function modifier() {
+    if (!v) return
+    setErreur(null)
+    setEdition({
+      ...DETAILS_VIDES,
+      resultat: v.resultat,
+      plateaux: v.plateaux ?? 0,
+      palettes: v.palettes ?? 0,
+      date_relance: v.date_relance,
+      remarques: v.remarques ?? [],
+      commentaire: v.commentaire ?? '',
+      contact_nom: v.contact_nom ?? '',
+      contact_fonction: v.contact_fonction ?? '',
+      contact_telephone: v.contact_telephone ?? '',
+      contact_email: v.contact_email ?? '',
+    })
+  }
+
+  async function enregistrer() {
+    if (!edition) return
+    const d = edition
+    if (d.resultat === 'precommande' && d.plateaux + d.palettes === 0) {
+      setErreur('Indique le nombre de plateaux ou de palettes.')
+      return
+    }
+    setOccupe(true)
+    setErreur(null)
+    const { error } = await supabase
+      .from('visites')
+      .update({
+        resultat: d.resultat,
+        plateaux: d.resultat === 'precommande' ? d.plateaux : null,
+        palettes: d.resultat === 'precommande' ? d.palettes : null,
+        date_relance: d.date_relance,
+        remarques: d.remarques,
+        commentaire: d.commentaire.trim() || null,
+        contact_nom: d.contact_nom.trim() || null,
+        contact_fonction: d.contact_fonction || null,
+        contact_telephone: d.contact_telephone.trim() || null,
+        contact_email: d.contact_email.trim() || null,
+        a_completer: false,
+        // Le rapport Drive sera refait avec les nouvelles infos.
+        drive_archive_at: null,
+      })
+      .eq('id', id!)
+    setOccupe(false)
+    if (error) {
+      setErreur(`Enregistrement refusé (${error.message}).`)
+      return
+    }
+    demanderArchivageDrive()
+    setEdition(null)
+    charger()
+  }
+
+  async function effacer() {
+    if (!v) return
+    if (
+      !window.confirm(
+        `Effacer définitivement la visite chez ${v.commerce?.nom ?? 'ce commerce'} ?\n\nLa photo est effacée et le dossier Google Drive part à la corbeille. Impossible d'annuler dans l'app.`
+      )
+    )
+      return
+    setOccupe(true)
+    const r = await appelAdmin('/api/supprimer-visite', { id: v.id })
+    setOccupe(false)
+    if (r.erreur) {
+      setErreur(r.erreur)
+      return
+    }
+    navigate('/admin/visites', { replace: true })
+  }
 
   const ouverture = v.lat_ouverture != null ? ([v.lat_ouverture, v.lng_ouverture!] as [number, number]) : null
   const envoi = v.lat_envoi != null ? ([v.lat_envoi, v.lng_envoi!] as [number, number]) : null
@@ -70,10 +147,60 @@ export default function AdminVisiteFichePage() {
             {date} à {heure(v.heure_serveur)} · {v.commercial?.full_name}
           </p>
         </div>
-        <span className={`rounded-full px-3 py-1 text-sm font-semibold ${BADGE_RESULTAT[v.resultat]}`}>
-          {LABEL_RESULTAT[v.resultat]}
-        </span>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className={`rounded-full px-3 py-1 text-sm font-semibold ${BADGE_RESULTAT[v.resultat]}`}>
+            {LABEL_RESULTAT[v.resultat]}
+          </span>
+          {!edition && (
+            <>
+              <button
+                onClick={modifier}
+                className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700"
+              >
+                Modifier
+              </button>
+              <button
+                onClick={effacer}
+                disabled={occupe}
+                className="rounded-lg border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
+              >
+                {occupe ? 'Suppression…' : 'Effacer'}
+              </button>
+            </>
+          )}
+        </div>
       </div>
+
+      {erreur && (
+        <p role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+          {erreur}
+        </p>
+      )}
+
+      {edition && (
+        <div className="space-y-3 rounded-xl border-2 border-slate-900 bg-slate-50 p-3">
+          <p className="px-1 text-sm text-slate-600">
+            Modification de la visite. La photo, l'heure et la position GPS ne changent pas.
+          </p>
+          <ChampsVisite details={edition} onChange={setEdition} contactConnu={!!edition.contact_nom} />
+          <div className="flex justify-end gap-2">
+            <button
+              onClick={() => setEdition(null)}
+              disabled={occupe}
+              className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700"
+            >
+              Annuler
+            </button>
+            <button
+              onClick={enregistrer}
+              disabled={occupe}
+              className="rounded-lg bg-[#b83a2c] px-5 py-2 text-sm font-semibold text-white disabled:opacity-50"
+            >
+              {occupe ? 'Enregistrement…' : 'Enregistrer'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {v.alertes.length > 0 && (
         <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">

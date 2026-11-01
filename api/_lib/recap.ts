@@ -87,6 +87,16 @@ ${
 <p style="margin-top:16px"><a href="${URL_APP}/admin/visites?vue=carte">Voir la carte de la journée</a></p>
 </div>`
 
+  await envoyerMail(
+    `Visites du ${jour} — ${visites.length} visite(s), ${precommandes.length} précommande(s)${
+      avecAlerte.length ? `, ${avecAlerte.length} alerte(s)` : ''
+    }`,
+    html
+  )
+  return { visites: visites.length }
+}
+
+async function envoyerMail(sujet: string, html: string) {
   const transport = nodemailer.createTransport({
     host: process.env.SMTP_HOST ?? 'smtp-auth.mailprotect.be',
     port: Number(process.env.SMTP_PORT ?? 465),
@@ -96,10 +106,75 @@ ${
   await transport.sendMail({
     from: `"Adala Visites" <${env('SMTP_USER')}>`,
     to: process.env.RECAP_DESTINATAIRE ?? 'order@adalacola.com',
-    subject: `Visites du ${jour} — ${visites.length} visite(s), ${precommandes.length} précommande(s)${
-      avecAlerte.length ? `, ${avecAlerte.length} alerte(s)` : ''
-    }`,
+    subject: sujet,
     html,
   })
+}
+
+interface LigneListe {
+  id: string
+  resultat: string
+  plateaux: number | null
+  palettes: number | null
+  heure_serveur: string
+  date_relance: string | null
+  remarques: string[] | null
+  commentaire: string | null
+  contact_nom: string | null
+  contact_fonction: string | null
+  contact_telephone: string | null
+  contact_email: string | null
+  type_commerce: string | null
+  drive_dossier_id: string | null
+  commerce: { nom: string; adresse: string | null; commune: string | null; type: string } | null
+  commercial: { full_name: string } | null
+}
+
+/** Liste de visites choisie par l'admin (sélection ou filtre), envoyée à order@adalacola.com. */
+export async function envoyerListe(db: SupabaseClient, ids: string[], titre: string): Promise<{ visites: number }> {
+  const { data, error } = await db
+    .from('visites')
+    .select(
+      'id, resultat, plateaux, palettes, heure_serveur, date_relance, remarques, commentaire, contact_nom, contact_fonction, contact_telephone, contact_email, type_commerce, drive_dossier_id, commerce:commerces(nom, adresse, commune, type), commercial:profiles(full_name)'
+    )
+    .in('id', ids)
+    .order('heure_serveur', { ascending: false })
+  if (error) throw new Error(error.message)
+  const visites = (data as unknown as LigneListe[]) ?? []
+
+  const td = 'style="border:1px solid #e5e7eb;padding:6px 8px;font-size:13px;vertical-align:top"'
+  const lignes = visites
+    .map(
+      (v, i) => `<tr>
+<td ${td}>${i + 1}</td>
+<td ${td}>${dateBxl(v.heure_serveur)}<br><span style="color:#6b7280">${heureBxl(v.heure_serveur)}</span></td>
+<td ${td}><b>${echapper(v.commerce?.nom)}</b><br><span style="color:#6b7280">${echapper(
+        [v.commerce?.adresse, v.commerce?.commune].filter(Boolean).join(', ')
+      )}<br>${echapper(LABEL_TYPE[v.type_commerce ?? v.commerce?.type ?? 'autre'])}</span></td>
+<td ${td}>${echapper([v.contact_nom, v.contact_fonction].filter(Boolean).join(' · '))}${
+        v.contact_telephone ? `<br>${echapper(v.contact_telephone)}` : ''
+      }${v.contact_email ? `<br>${echapper(v.contact_email)}` : ''}</td>
+<td ${td}>${echapper(LABEL_RESULTAT[v.resultat])}${
+        v.resultat === 'precommande' ? `<br><b>${v.plateaux ?? 0} plat. de 24 · ${v.palettes ?? 0} pal.</b>` : ''
+      }</td>
+<td ${td}>${v.date_relance ? dateBxl(`${v.date_relance}T12:00:00Z`) : ''}</td>
+<td ${td}>${echapper([...(v.remarques ?? []), v.commentaire].filter(Boolean).join(' · '))}</td>
+<td ${td}>${v.drive_dossier_id ? `<a href="https://drive.google.com/drive/folders/${v.drive_dossier_id}">Drive</a> · ` : ''}<a href="${URL_APP}/admin/visites/${v.id}">App</a></td>
+</tr>`
+    )
+    .join('')
+
+  const plateaux = visites.reduce((s, v) => s + (v.plateaux ?? 0), 0)
+  const palettes = visites.reduce((s, v) => s + (v.palettes ?? 0), 0)
+  const html = `<div style="font-family:Arial,sans-serif;color:#111827;max-width:1000px">
+<h2 style="color:#b83a2c;margin:0 0 4px">${echapper(titre)}</h2>
+<p style="color:#6b7280;margin:0 0 16px">${visites.length} visite(s)${
+    plateaux || palettes ? ` · total précommandé : ${plateaux} plateau(x) de 24, ${palettes} palette(s)` : ''
+  }</p>
+<table style="border-collapse:collapse;width:100%"><tr style="background:#f3f4f6">
+<th ${td}>#</th><th ${td}>Date</th><th ${td}>Commerce</th><th ${td}>Contact</th><th ${td}>Résultat</th><th ${td}>Relance</th><th ${td}>Remarques</th><th ${td}>Dossier</th></tr>${lignes}</table>
+</div>`
+
+  await envoyerMail(`${titre} — ${visites.length} visite(s)`, html)
   return { visites: visites.length }
 }

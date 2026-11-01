@@ -4,7 +4,8 @@
   ],
   "functions": {
     "api/recap-soir.ts": { "maxDuration": 300 },
-    "api/drive-archiver.ts": { "maxDuration": 60 }
+    "api/drive-archiver.ts": { "maxDuration": 60 },
+    "api/supprimer-visite.ts": { "maxDuration": 60 }
   },
   "crons": [
     { "path": "/api/recap-soir", "schedule": "0 18 * * *" }

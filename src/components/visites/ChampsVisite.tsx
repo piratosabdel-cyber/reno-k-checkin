@@ -128,7 +128,10 @@ export default function ChampsVisite({
   contactConnu?: boolean
 }) {
   const [contactOuvert, setContactOuvert] = useState(!contactConnu)
-  const set = <K extends keyof DetailsVisite>(k: K, v: DetailsVisite[K]) => onChange({ ...details, [k]: v })
+  const [unite, setUnite] = useState<'plateaux' | 'palettes'>(
+    details.palettes > 0 && details.plateaux === 0 ? 'palettes' : 'plateaux'
+  )
+  const set =<K extends keyof DetailsVisite>(k: K, v: DetailsVisite[K]) => onChange({ ...details, [k]: v })
 
   function basculerRemarque(r: string) {
     set('remarques', details.remarques.includes(r) ? details.remarques.filter((x) => x !== r) : [...details.remarques, r])
@@ -153,9 +156,29 @@ export default function ChampsVisite({
         </div>
 
         {details.resultat === 'precommande' && (
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <Compteur label="Plateaux de 24" valeur={details.plateaux} onChange={(n) => set('plateaux', n)} />
-            <Compteur label="Palettes" valeur={details.palettes} onChange={(n) => set('palettes', n)} />
+          <div className="mt-4 space-y-3">
+            <p className="font-medium text-slate-700">Quantité à commander</p>
+            <div className="grid grid-cols-2 gap-2">
+              {(['plateaux', 'palettes'] as const).map((u) => (
+                <Puce
+                  key={u}
+                  actif={unite === u}
+                  onClick={() => {
+                    if (u === unite) return
+                    // On commande soit en plateaux, soit en palettes : la quantité suit l'unité choisie.
+                    setUnite(u)
+                    onChange({ ...details, [u]: details[unite], [unite]: 0 })
+                  }}
+                >
+                  {u === 'plateaux' ? 'Plateaux de 24' : 'Palettes'}
+                </Puce>
+              ))}
+            </div>
+            <Compteur
+              label={unite === 'plateaux' ? 'Nombre de plateaux de 24' : 'Nombre de palettes'}
+              valeur={details[unite]}
+              onChange={(n) => set(unite, n)}
+            />
           </div>
         )}
       </Section>

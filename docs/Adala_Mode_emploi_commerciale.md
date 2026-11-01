@@ -19,7 +19,7 @@ La position est lue **uniquement** au moment où tu ouvres et enregistres une vi
    - sinon, tape les premières lettres du nom ;
    - pour un nouveau commerce, appuie sur **+ Nouveau commerce** : l'adresse est proposée toute seule, il reste à choisir le type.
 3. **📷 Prendre la photo** : la vitrine, le rayon ou le frigo.
-4. **Résultat** : un seul choix. Pour une précommande, indique les plateaux et les palettes avec **−** / **+**.
+4. **Résultat** : un seul choix. Pour une précommande, choisis **Plateaux de 24** ou **Palettes**, puis la quantité avec **−** / **+** (ou 1, 2, 5, 10).
 5. **Relance**, **remarques** et **contact** : touche les boutons. Pour dicter un commentaire, utilise le 🎤 du clavier. Le contact d'un commerce déjà connu est déjà rempli.
 6. **Enregistrer la visite**.
 
