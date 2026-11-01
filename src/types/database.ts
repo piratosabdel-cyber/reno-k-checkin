@@ -103,6 +103,7 @@ export interface Commerce {
   contact_email: string | null
   adresse_livraison: string | null
   adresse_facturation: string | null
+  numero_entreprise: string | null
   numero_tva: string | null
   reseau_social: string | null
   statut: StatutCommerce
@@ -124,6 +125,7 @@ export interface Visite {
   contact_email: string | null
   adresse_livraison: string | null
   adresse_facturation: string | null
+  numero_entreprise: string | null
   numero_tva: string | null
   reseau_social: string | null
   resultat: ResultatVisite

@@ -16,6 +16,7 @@ export interface DetailsVisite {
   reseau_social: string
   adresse_livraison: string
   adresse_facturation: string
+  numero_entreprise: string
   numero_tva: string
 }
 
@@ -28,6 +29,7 @@ export const INFOS_CLIENT_VIDES = {
   reseau_social: '',
   adresse_livraison: '',
   adresse_facturation: '',
+  numero_entreprise: '',
   numero_tva: '',
 }
 
@@ -56,6 +58,52 @@ export function Section({ titre, children }: { titre: string; children: ReactNod
       <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">{titre}</h2>
       {children}
     </section>
+  )
+}
+
+const ICONES: Record<string, ReactNode> = {
+  personne: <><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 4-6 8-6s8 2 8 6" /></>,
+  telephone: <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z" />,
+  mail: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 7 9 6 9-6" /></>,
+  entreprise: <><rect x="4" y="3" width="16" height="18" rx="1" /><path d="M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2M10 21v-3h4v3" /></>,
+  facture: <><path d="M6 2h9l5 5v15H6z" /><path d="M14 2v6h6M9 13h7M9 17h7" /></>,
+  livraison: <><path d="M1 4h13v12H1zM14 8h4l3 4v4h-7" /><circle cx="5.5" cy="18.5" r="2" /><circle cx="17.5" cy="18.5" r="2" /></>,
+  tva: <><path d="M19 5 5 19" /><circle cx="7" cy="7" r="2.5" /><circle cx="17" cy="17" r="2.5" /></>,
+  reseau: <><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4" /></>,
+}
+
+/** Champ avec son icône à gauche, comme un formulaire d'inscription. */
+function ChampIcone({
+  icone,
+  valeur,
+  onValeur,
+  lignes,
+  ...props
+}: {
+  icone: keyof typeof ICONES
+  valeur: string
+  onValeur: (v: string) => void
+  lignes?: number
+  placeholder: string
+  type?: string
+  inputMode?: 'text' | 'tel' | 'email' | 'url'
+  autoCapitalize?: string
+}) {
+  const classe = 'min-w-0 flex-1 bg-transparent px-4 py-3 text-base text-slate-800 placeholder:text-slate-400 focus:outline-none'
+  const commun = { ...props, value: valeur, autoComplete: 'off', className: classe }
+  return (
+    <label className="flex overflow-hidden rounded-xl border border-slate-300 bg-white focus-within:border-[#b83a2c] focus-within:ring-1 focus-within:ring-[#b83a2c]">
+      <span className={`flex w-12 shrink-0 justify-center border-r border-slate-200 bg-slate-50 text-slate-600 ${lignes ? 'pt-3.5' : 'items-center'}`}>
+        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          {ICONES[icone]}
+        </svg>
+      </span>
+      {lignes ? (
+        <textarea {...commun} rows={lignes} className={`${classe} resize-none`} onChange={(e) => onValeur(e.target.value)} />
+      ) : (
+        <input {...commun} onChange={(e) => onValeur(e.target.value)} />
+      )}
+    </label>
   )
 }
 
@@ -149,10 +197,13 @@ export default function ChampsVisite({
   onChange: (d: DetailsVisite) => void
   /** Contact déjà connu du commerce : affiché replié pour ne pas le retaper. */
   contactConnu?: boolean
-  /** Proposée en un toucher comme adresse de livraison. */
+  /** Proposée en un toucher comme adresse de facturation. */
   adresseCommerce?: string | null
 }) {
   const [contactOuvert, setContactOuvert] = useState(!contactConnu)
+  const [livraisonIdentique, setLivraisonIdentique] = useState(
+    !details.adresse_livraison || details.adresse_livraison === details.adresse_facturation
+  )
   const [unite, setUnite] = useState<'plateaux' | 'palettes'>(
     details.palettes > 0 && details.plateaux === 0 ? 'palettes' : 'plateaux'
   )
@@ -276,13 +327,7 @@ export default function ChampsVisite({
           </button>
         ) : (
           <div className="space-y-3">
-            <input
-              value={details.contact_nom}
-              onChange={(e) => set('contact_nom', e.target.value)}
-              placeholder="Nom"
-              autoComplete="off"
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 text-base"
-            />
+            <ChampIcone icone="personne" valeur={details.contact_nom} onValeur={(v) => set('contact_nom', v)} placeholder="Nom du contact" />
             <div className="flex flex-wrap gap-2">
               {FONCTIONS_CONTACT.map((f) => (
                 <Puce
@@ -294,76 +339,41 @@ export default function ChampsVisite({
                 </Puce>
               ))}
             </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <input
-                type="tel"
-                inputMode="tel"
-                value={details.contact_telephone}
-                onChange={(e) => set('contact_telephone', e.target.value)}
-                placeholder="Téléphone (facultatif)"
-                className="w-full rounded-xl border border-slate-300 px-4 py-3 text-base"
-              />
-              <input
-                type="email"
-                inputMode="email"
-                value={details.contact_email}
-                onChange={(e) => set('contact_email', e.target.value)}
-                placeholder="E-mail (facultatif)"
-                className="w-full rounded-xl border border-slate-300 px-4 py-3 text-base"
-              />
-            </div>
-            <input
-              inputMode="url"
-              autoCapitalize="none"
-              value={details.reseau_social}
-              onChange={(e) => set('reseau_social', e.target.value)}
-              placeholder="Réseau social : Instagram, Facebook… (facultatif)"
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 text-base"
-            />
+            <ChampIcone icone="telephone" type="tel" inputMode="tel" valeur={details.contact_telephone} onValeur={(v) => set('contact_telephone', v)} placeholder="Téléphone" />
+            <ChampIcone icone="mail" type="email" inputMode="email" autoCapitalize="none" valeur={details.contact_email} onValeur={(v) => set('contact_email', v)} placeholder="E-mail" />
 
-            <p className="pt-2 text-sm font-semibold text-slate-600">🚚 Adresse de livraison</p>
-            {adresseCommerce && details.adresse_livraison !== adresseCommerce && (
+            <ChampIcone icone="entreprise" valeur={details.numero_entreprise} onValeur={(v) => set('numero_entreprise', v)} placeholder="N° d'entreprise (BCE)" />
+            <ChampIcone icone="facture" lignes={2} valeur={details.adresse_facturation} onValeur={(v) => onChange({ ...details, adresse_facturation: v, ...(livraisonIdentique ? { adresse_livraison: v } : {}) })} placeholder="Adresse de facturation" />
+            {adresseCommerce && !details.adresse_facturation && (
               <button
                 type="button"
-                onClick={() => set('adresse_livraison', adresseCommerce)}
+                onClick={() => onChange({ ...details, adresse_facturation: adresseCommerce, ...(livraisonIdentique ? { adresse_livraison: adresseCommerce } : {}) })}
                 className="min-h-11 rounded-xl border-2 border-slate-200 px-4 text-sm font-medium text-slate-700"
               >
-                📍 Même adresse que le commerce
+                📍 Reprendre l'adresse du commerce
               </button>
             )}
-            <textarea
-              value={details.adresse_livraison}
-              onChange={(e) => set('adresse_livraison', e.target.value)}
-              rows={2}
-              placeholder="Rue, numéro, code postal, commune"
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 text-base"
-            />
-
-            <p className="pt-2 text-sm font-semibold text-slate-600">🧾 Facturation</p>
-            {details.adresse_livraison && details.adresse_facturation !== details.adresse_livraison && (
-              <button
-                type="button"
-                onClick={() => set('adresse_facturation', details.adresse_livraison)}
-                className="min-h-11 rounded-xl border-2 border-slate-200 px-4 text-sm font-medium text-slate-700"
-              >
-                Même adresse que la livraison
-              </button>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={livraisonIdentique}
+              onClick={() => {
+                // Identique : la livraison suit la facturation. Sinon, on repart d'un champ vide.
+                setLivraisonIdentique(!livraisonIdentique)
+                set('adresse_livraison', livraisonIdentique ? '' : details.adresse_facturation)
+              }}
+              className="flex w-full items-center gap-3 rounded-xl border border-slate-300 bg-white px-3 py-3 text-left"
+            >
+              <span className={`relative h-7 w-12 shrink-0 rounded-full transition ${livraisonIdentique ? 'bg-[#b83a2c]' : 'bg-slate-300'}`}>
+                <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-all ${livraisonIdentique ? 'left-6' : 'left-1'}`} />
+              </span>
+              <span className="text-base text-slate-800">Adresse de livraison identique à la facturation</span>
+            </button>
+            {!livraisonIdentique && (
+              <ChampIcone icone="livraison" lignes={2} valeur={details.adresse_livraison} onValeur={(v) => set('adresse_livraison', v)} placeholder="Adresse de livraison" />
             )}
-            <textarea
-              value={details.adresse_facturation}
-              onChange={(e) => set('adresse_facturation', e.target.value)}
-              rows={2}
-              placeholder="Adresse de facturation (société, rue, numéro, code postal, commune)"
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 text-base"
-            />
-            <input
-              value={details.numero_tva}
-              onChange={(e) => set('numero_tva', e.target.value.toUpperCase())}
-              autoCapitalize="characters"
-              autoComplete="off"
-              placeholder="N° de TVA (ex. BE0123.456.789)"
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 text-base"
-            />
+            <ChampIcone icone="tva" autoCapitalize="characters" valeur={details.numero_tva} onValeur={(v) => set('numero_tva', v.toUpperCase())} placeholder="N° de TVA (ex. BE0123.456.789)" />
+            <ChampIcone icone="reseau" inputMode="url" autoCapitalize="none" valeur={details.reseau_social} onValeur={(v) => set('reseau_social', v)} placeholder="Réseaux sociaux (Instagram, Facebook…)" />
           </div>
         )}
       </Section>

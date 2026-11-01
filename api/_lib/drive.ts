@@ -154,6 +154,7 @@ interface VisiteComplete {
   reseau_social: string | null
   adresse_livraison: string | null
   adresse_facturation: string | null
+  numero_entreprise: string | null
   numero_tva: string | null
   type_commerce: string | null
   lat_envoi: number | null
@@ -186,6 +187,7 @@ interface CommerceComplet {
   reseau_social: string | null
   adresse_livraison: string | null
   adresse_facturation: string | null
+  numero_entreprise: string | null
   numero_tva: string | null
   drive_dossier_id: string | null
   drive_visites_dossier_id: string | null
@@ -236,6 +238,7 @@ ${ligne('E-mail', echapper(v.contact_email))}
 ${ligne('Réseau social', echapper(v.reseau_social))}
 ${ligne('Adresse de livraison', echapper(v.adresse_livraison))}
 ${ligne('Adresse de facturation', echapper(v.adresse_facturation))}
+${ligne("N° d'entreprise", echapper(v.numero_entreprise))}
 ${ligne('N° de TVA', echapper(v.numero_tva))}
 </table>
 <h2>Localisation</h2><table>
@@ -274,6 +277,7 @@ ${ligne('E-mail', echapper(c.contact_email))}
 ${ligne('Réseau social', echapper(c.reseau_social))}
 ${ligne('Adresse de livraison', echapper(c.adresse_livraison))}
 ${ligne('Adresse de facturation', echapper(c.adresse_facturation))}
+${ligne("N° d'entreprise", echapper(c.numero_entreprise))}
 ${ligne('N° de TVA', echapper(c.numero_tva))}
 </table>
 <h2>Résumé</h2><table>
@@ -289,7 +293,7 @@ ${ligne('Prochaine relance', prochaine ? dateBxl(`${prochaine}T12:00:00Z`) : nul
 }
 
 const SELECT_VISITE =
-  'id, commerce_id, resultat, plateaux, palettes, date_relance, remarques, commentaire, contact_nom, contact_fonction, contact_telephone, contact_email, reseau_social, adresse_livraison, adresse_facturation, numero_tva, type_commerce, lat_envoi, lng_envoi, lat_ouverture, lng_ouverture, precision_envoi_m, adresse_gps, heure_serveur, photo_path, a_completer, drive_dossier_id, drive_rapport_id, commercial:profiles(full_name)'
+  'id, commerce_id, resultat, plateaux, palettes, date_relance, remarques, commentaire, contact_nom, contact_fonction, contact_telephone, contact_email, reseau_social, adresse_livraison, adresse_facturation, numero_tva, numero_entreprise, type_commerce, lat_envoi, lng_envoi, lat_ouverture, lng_ouverture, precision_envoi_m, adresse_gps, heure_serveur, photo_path, a_completer, drive_dossier_id, drive_rapport_id, commercial:profiles(full_name)'
 
 async function dossierType(db: SupabaseClient, drive: Drive, type: string): Promise<string> {
   let racine = await lireReglage(db, 'drive_racine')

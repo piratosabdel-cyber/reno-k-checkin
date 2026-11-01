@@ -47,6 +47,7 @@ export default function AdminCommerceFichePage() {
         reseau_social: edition.reseau_social,
         adresse_livraison: edition.adresse_livraison,
         adresse_facturation: edition.adresse_facturation,
+        numero_entreprise: edition.numero_entreprise,
         numero_tva: edition.numero_tva,
         updated_at: new Date().toISOString(),
       })
@@ -133,6 +134,7 @@ export default function AdminCommerceFichePage() {
           <input className={champ} value={edition.contact_telephone ?? ''} onChange={(e) => setEdition({ ...edition, contact_telephone: e.target.value || null })} placeholder="Téléphone" />
           <input className={champ} value={edition.contact_email ?? ''} onChange={(e) => setEdition({ ...edition, contact_email: e.target.value || null })} placeholder="E-mail" />
           <input className={champ} value={edition.reseau_social ?? ''} onChange={(e) => setEdition({ ...edition, reseau_social: e.target.value || null })} placeholder="Réseau social (lien)" />
+          <input className={champ} value={edition.numero_entreprise ?? ''} onChange={(e) => setEdition({ ...edition, numero_entreprise: e.target.value || null })} placeholder="N° d'entreprise" />
           <input className={champ} value={edition.numero_tva ?? ''} onChange={(e) => setEdition({ ...edition, numero_tva: e.target.value || null })} placeholder="N° de TVA" />
           <input className={champ} value={edition.adresse_livraison ?? ''} onChange={(e) => setEdition({ ...edition, adresse_livraison: e.target.value || null })} placeholder="Adresse de livraison" />
           <input className={champ} value={edition.adresse_facturation ?? ''} onChange={(e) => setEdition({ ...edition, adresse_facturation: e.target.value || null })} placeholder="Adresse de facturation" />
@@ -191,6 +193,7 @@ export default function AdminCommerceFichePage() {
         )}
         {c.adresse_livraison && <p className="mt-1">Livraison : {c.adresse_livraison}</p>}
         {c.adresse_facturation && <p className="mt-1">Facturation : {c.adresse_facturation}</p>}
+        {c.numero_entreprise && <p className="mt-1">N° d'entreprise : {c.numero_entreprise}</p>}
         {c.numero_tva && <p className="mt-1">TVA : {c.numero_tva}</p>}
       </section>
 

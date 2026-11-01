@@ -127,6 +127,7 @@ interface LigneListe {
   reseau_social: string | null
   adresse_livraison: string | null
   adresse_facturation: string | null
+  numero_entreprise: string | null
   numero_tva: string | null
   type_commerce: string | null
   drive_dossier_id: string | null
@@ -147,7 +148,7 @@ export async function envoyerListe(
   let requete = db
     .from('visites')
     .select(
-      'id, resultat, plateaux, palettes, heure_serveur, date_relance, remarques, commentaire, contact_nom, contact_fonction, contact_telephone, contact_email, reseau_social, adresse_livraison, adresse_facturation, numero_tva, type_commerce, drive_dossier_id, commerce:commerces(nom, adresse, commune, type), commercial:profiles(full_name)'
+      'id, resultat, plateaux, palettes, heure_serveur, date_relance, remarques, commentaire, contact_nom, contact_fonction, contact_telephone, contact_email, reseau_social, adresse_livraison, adresse_facturation, numero_tva, numero_entreprise, type_commerce, drive_dossier_id, commerce:commerces(nom, adresse, commune, type), commercial:profiles(full_name)'
     )
     .in('id', ids)
   if (commercialId) requete = requete.eq('commercial_id', commercialId)
@@ -170,7 +171,8 @@ export async function envoyerListe(
       }${v.contact_email ? `<br>${echapper(v.contact_email)}` : ''}${v.reseau_social ? `<br>${echapper(v.reseau_social)}` : ''}${
         v.adresse_livraison ? `<br><b>Livraison :</b> ${echapper(v.adresse_livraison)}` : ''
       }${v.adresse_facturation ? `<br><b>Facturation :</b> ${echapper(v.adresse_facturation)}` : ''}${
-        v.numero_tva ? `<br><b>TVA :</b> ${echapper(v.numero_tva)}` : ''
+        v.numero_entreprise ? `<br><b>N° d'entreprise :</b> ${echapper(v.numero_entreprise)}` : ''
+      }${v.numero_tva ? `<br><b>TVA :</b> ${echapper(v.numero_tva)}` : ''
       }</td>
 <td ${td}>${echapper(LABEL_RESULTAT[v.resultat])}${
         v.resultat === 'precommande' ? `<br><b>${v.plateaux ?? 0} plat. de 24 · ${v.palettes ?? 0} pal.</b>` : ''

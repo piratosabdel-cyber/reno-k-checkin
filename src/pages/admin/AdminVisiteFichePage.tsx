@@ -64,6 +64,7 @@ export default function AdminVisiteFichePage() {
       contact_email: v.contact_email ?? '',
       adresse_livraison: v.adresse_livraison ?? '',
       adresse_facturation: v.adresse_facturation ?? '',
+      numero_entreprise: v.numero_entreprise ?? '',
       numero_tva: v.numero_tva ?? '',
       reseau_social: v.reseau_social ?? '',
     })
@@ -93,6 +94,7 @@ export default function AdminVisiteFichePage() {
         contact_email: d.contact_email.trim() || null,
         adresse_livraison: d.adresse_livraison.trim() || null,
         adresse_facturation: d.adresse_facturation.trim() || null,
+        numero_entreprise: d.numero_entreprise.trim() || null,
         numero_tva: d.numero_tva.trim() || null,
         reseau_social: d.reseau_social.trim() || null,
         a_completer: false,
@@ -263,6 +265,7 @@ export default function AdminVisiteFichePage() {
             </Ligne>
             <Ligne label="Adresse de livraison">{v.adresse_livraison}</Ligne>
             <Ligne label="Adresse de facturation">{v.adresse_facturation}</Ligne>
+            <Ligne label="N° d'entreprise">{v.numero_entreprise}</Ligne>
             <Ligne label="N° de TVA">{v.numero_tva}</Ligne>
             {v.remarques?.length > 0 && <Ligne label="Remarques">{v.remarques.join(' · ')}</Ligne>}
             <Ligne label="Commentaire">{v.commentaire}</Ligne>

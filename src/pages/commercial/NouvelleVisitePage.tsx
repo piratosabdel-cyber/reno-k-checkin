@@ -116,6 +116,7 @@ export default function NouvelleVisitePage() {
       contact_email: c.contact_email ?? '',
       adresse_livraison: c.adresse_livraison ?? '',
       adresse_facturation: c.adresse_facturation ?? '',
+      numero_entreprise: c.numero_entreprise ?? '',
       numero_tva: c.numero_tva ?? '',
       reseau_social: c.reseau_social ?? '',
     }))
@@ -196,6 +197,7 @@ export default function NouvelleVisitePage() {
       contact_email: d.contact_email.trim() || null,
       adresse_livraison: d.adresse_livraison.trim() || null,
       adresse_facturation: d.adresse_facturation.trim() || null,
+      numero_entreprise: d.numero_entreprise.trim() || null,
       numero_tva: d.numero_tva.trim() || null,
       reseau_social: d.reseau_social.trim() || null,
       resultat: d.resultat!,

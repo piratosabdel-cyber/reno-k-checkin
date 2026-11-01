@@ -30,6 +30,7 @@ export interface VisiteEnAttente {
   contact_email: string | null
   adresse_livraison?: string | null
   adresse_facturation?: string | null
+  numero_entreprise?: string | null
   numero_tva?: string | null
   reseau_social?: string | null
   resultat: ResultatVisite
@@ -172,6 +173,7 @@ export async function synchroniserVisites(commercialId: string): Promise<{ envoy
       // Absents des visites mises en file par une ancienne version de l'app.
       adresse_livraison: v.adresse_livraison ?? null,
       adresse_facturation: v.adresse_facturation ?? null,
+      numero_entreprise: v.numero_entreprise ?? null,
       numero_tva: v.numero_tva ?? null,
       reseau_social: v.reseau_social ?? null,
       resultat: v.resultat,

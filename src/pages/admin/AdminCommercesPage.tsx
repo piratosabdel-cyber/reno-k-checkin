@@ -61,7 +61,7 @@ export default function AdminCommercesPage() {
   function exporter() {
     telechargerCsv(
       'commerces_adala.csv',
-      ['Nom', 'Type', 'Statut', 'Adresse', 'Commune', 'Contact', 'Fonction', 'Téléphone', 'E-mail', 'Réseau social', 'Adresse de livraison', 'Adresse de facturation', 'N° de TVA', 'Visites', 'Dernière visite', 'Plateaux', 'Palettes'],
+      ['Nom', 'Type', 'Statut', 'Adresse', 'Commune', 'Contact', 'Fonction', 'Téléphone', 'E-mail', 'Réseau social', 'Adresse de livraison', 'Adresse de facturation', "N° d'entreprise", 'N° de TVA', 'Visites', 'Dernière visite', 'Plateaux', 'Palettes'],
       filtres.map((c) => {
         const a = agregats[c.id]
         return [
@@ -77,6 +77,7 @@ export default function AdminCommercesPage() {
           c.reseau_social,
           c.adresse_livraison,
           c.adresse_facturation,
+          c.numero_entreprise,
           c.numero_tva,
           a?.nb ?? 0,
           a?.derniere ? new Date(a.derniere).toLocaleDateString('fr-BE') : '',
