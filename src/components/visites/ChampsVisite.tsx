@@ -148,39 +148,50 @@ export default function ChampsVisite({
               key={r.valeur}
               actif={details.resultat === r.valeur}
               couleurActive={r.couleur}
-              onClick={() => set('resultat', r.valeur)}
+              onClick={() =>
+                // Pas de quantité sans précommande.
+                onChange(
+                  r.valeur === 'precommande'
+                    ? { ...details, resultat: r.valeur }
+                    : { ...details, resultat: r.valeur, plateaux: 0, palettes: 0 }
+                )
+              }
             >
               {r.label}
             </Puce>
           ))}
         </div>
 
-        {details.resultat === 'precommande' && (
-          <div className="mt-4 space-y-3">
-            <p className="font-medium text-slate-700">Quantité à commander</p>
-            <div className="grid grid-cols-2 gap-2">
-              {(['plateaux', 'palettes'] as const).map((u) => (
-                <Puce
-                  key={u}
-                  actif={unite === u}
-                  onClick={() => {
-                    if (u === unite) return
-                    // On commande soit en plateaux, soit en palettes : la quantité suit l'unité choisie.
-                    setUnite(u)
-                    onChange({ ...details, [u]: details[unite], [unite]: 0 })
-                  }}
-                >
-                  {u === 'plateaux' ? 'Plateaux de 24' : 'Palettes'}
-                </Puce>
-              ))}
-            </div>
-            <Compteur
-              label={unite === 'plateaux' ? 'Nombre de plateaux de 24' : 'Nombre de palettes'}
-              valeur={details[unite]}
-              onChange={(n) => set(unite, n)}
-            />
+      </Section>
+
+      <Section titre="Commande">
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-2">
+            {(['plateaux', 'palettes'] as const).map((u) => (
+              <Puce
+                key={u}
+                actif={unite === u}
+                onClick={() => {
+                  if (u === unite) return
+                  // On commande soit en plateaux, soit en palettes : la quantité suit l'unité choisie.
+                  setUnite(u)
+                  onChange({ ...details, [u]: details[unite], [unite]: 0 })
+                }}
+              >
+                {u === 'plateaux' ? '📦 Plateaux de 24' : '🚛 Palettes'}
+              </Puce>
+            ))}
           </div>
-        )}
+          <Compteur
+            label={unite === 'plateaux' ? 'Nombre de plateaux de 24' : 'Nombre de palettes'}
+            valeur={details[unite]}
+            // Une quantité commandée, c'est une précommande.
+            onChange={(n) =>
+              onChange({ ...details, [unite]: n, ...(n > 0 ? { resultat: 'precommande' as const } : {}) })
+            }
+          />
+          <p className="text-xs text-slate-400">Une quantité indiquée passe la visite en « Précommande ».</p>
+        </div>
       </Section>
 
       <Section titre="Relance">
