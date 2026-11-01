@@ -57,6 +57,8 @@ export const REMARQUES_RAPIDES = [
   'Déjà un fournisseur cola',
   'Bon emplacement en vitrine',
   'Intéressé par les canettes',
+  'Intéressé par les bouteilles PET',
+  'Intéressé par le verre',
   'Paiement à la livraison',
 ]
 
