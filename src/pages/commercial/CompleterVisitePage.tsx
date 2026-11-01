@@ -9,6 +9,14 @@ import ChampsVisite, { DETAILS_VIDES, Puce, Section, type DetailsVisite } from '
 
 const DELAI_MODIFICATION_MS = 7 * 24 * 3600000
 
+/** L'adresse GPS contient souvent déjà la commune : on ne la répète pas. */
+function adresseAffichee(v: VisiteChargee) {
+  const adresse = v.commerce.adresse ?? v.adresse_gps ?? ''
+  const commune = v.commerce.commune
+  if (commune && !adresse.toLowerCase().includes(commune.toLowerCase())) return [adresse, commune].filter(Boolean).join(', ')
+  return adresse || commune || '—'
+}
+
 interface VisiteChargee extends Visite {
   commerce: { nom: string; type: TypeCommerce; adresse: string | null; commune: string | null }
 }
@@ -167,7 +175,7 @@ export default function CompleterVisitePage() {
             <div className="space-y-1 p-4 text-sm">
               <p className="text-slate-500 first-letter:uppercase">{date}</p>
               <p className="text-slate-800">
-                📍 {[visite.commerce.adresse ?? visite.adresse_gps, visite.commerce.commune].filter(Boolean).join(', ') || '—'}
+                📍 {adresseAffichee(visite)}
               </p>
               <p className="text-xs text-slate-400">La photo et l'adresse ne se modifient pas.</p>
             </div>
