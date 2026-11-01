@@ -212,6 +212,9 @@ export default function AdminVisitesPage() {
                         {v.a_completer && (
                           <span className="ml-2 rounded bg-amber-100 px-1 text-xs text-amber-800">à compléter</span>
                         )}
+                        {v.modifiee_le && (
+                          <span className="ml-2 rounded bg-slate-200 px-1 text-xs text-slate-600">modifiée</span>
+                        )}
                       </td>
                       <td className="whitespace-nowrap px-3 py-3 text-slate-600">
                         {LABEL_TYPE[v.type_commerce ?? v.commerce?.type ?? 'autre']}

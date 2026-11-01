@@ -122,6 +122,11 @@ export default function AdminVisiteFichePage() {
             {v.remarques?.length > 0 && <Ligne label="Remarques">{v.remarques.join(' · ')}</Ligne>}
             <Ligne label="Commentaire">{v.commentaire}</Ligne>
             {v.a_completer && <Ligne label="État">À compléter par la commerciale</Ligne>}
+            {v.modifiee_le && (
+              <Ligne label="Modifiée après coup">
+                {new Date(v.modifiee_le).toLocaleString('fr-BE', { dateStyle: 'short', timeStyle: 'short' })}
+              </Ligne>
+            )}
           </section>
         </div>
 

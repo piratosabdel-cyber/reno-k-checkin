@@ -23,7 +23,9 @@ La position est lue **uniquement** au moment où tu ouvres et enregistres une vi
 5. **Relance**, **remarques** et **contact** : touche les boutons. Pour dicter un commentaire, utilise le 🎤 du clavier. Le contact d'un commerce déjà connu est déjà rempli.
 6. **Enregistrer la visite**.
 
-**Pas le temps ?** Prends juste la photo, choisis le résultat, puis appuie sur **« Enregistrer et compléter plus tard »**. La visite apparaît en haut de l'écran d'accueil dans **À compléter**. Tu as jusqu'au lendemain pour la compléter.
+**Pas le temps ?** Prends juste la photo, choisis le résultat, puis appuie sur **« Enregistrer et compléter plus tard »**. La visite apparaît en haut de l'écran d'accueil dans **À compléter**.
+
+**Un oubli ?** Sur l'écran d'accueil, touche la visite (✎) pour ajouter ou corriger une info : résultat, quantités, contact, relance, commentaire. C'est possible pendant **7 jours**. La photo, l'heure et la position GPS ne changent pas.
 
 ## 4. Sans réseau
 Rien à faire : la visite est gardée sur l'appareil et part toute seule dès que le réseau revient. Le message « en attente d'envoi » disparaît alors. **Ne désinstalle pas l'app** tant qu'il reste des visites en attente.

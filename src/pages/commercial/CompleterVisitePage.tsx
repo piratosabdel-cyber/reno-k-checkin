@@ -6,11 +6,15 @@ import type { Visite } from '../../types/database'
 import AdalaHeader from '../../components/visites/AdalaHeader'
 import ChampsVisite, { DETAILS_VIDES, type DetailsVisite } from '../../components/visites/ChampsVisite'
 
-/** Complète une visite enregistrée en vitesse (GPS, heure et photo restent ceux de la visite). */
+/**
+ * Complète une visite enregistrée en vitesse, ou modifie une visite des
+ * 7 derniers jours. GPS, heure et photo restent ceux de la visite.
+ */
 export default function CompleterVisitePage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const [nom, setNom] = useState('')
+  const [aCompleter, setACompleter] = useState(true)
   const [details, setDetails] = useState<DetailsVisite | null>(null)
   const [erreur, setErreur] = useState<string | null>(null)
   const [envoi, setEnvoi] = useState(false)
@@ -28,6 +32,11 @@ export default function CompleterVisitePage() {
         }
         const v = data as Visite & { commerce: { nom: string } }
         setNom(v.commerce.nom)
+        setACompleter(v.a_completer)
+        if (Date.now() - new Date(v.heure_serveur).getTime() > 7 * 24 * 3600000) {
+          setErreur('Cette visite a plus de 7 jours : elle ne peut plus être modifiée.')
+          return
+        }
         setDetails({
           ...DETAILS_VIDES,
           resultat: v.resultat,
@@ -53,7 +62,7 @@ export default function CompleterVisitePage() {
     setEnvoi(true)
     setErreur(null)
     const d = details
-    const { error } = await supabase
+    const { data: maj, error } = await supabase
       .from('visites')
       .update({
         resultat: d.resultat,
@@ -69,19 +78,28 @@ export default function CompleterVisitePage() {
         a_completer: false,
       })
       .eq('id', id!)
+      .select('id')
     setEnvoi(false)
     if (error) {
       setErreur(navigator.onLine ? `Enregistrement refusé (${error.message}).` : 'Pas de connexion : réessaie dans un instant.')
       return
     }
+    // Sans ligne renvoyée, la base a refusé (délai de 7 jours dépassé).
+    if (!maj?.length) {
+      setErreur('Cette visite ne peut plus être modifiée.')
+      return
+    }
     demanderArchivageDrive()
-    navigate('/visites', { replace: true, state: { message: `Visite chez ${nom} complétée ✓` } })
+    navigate('/visites', {
+      replace: true,
+      state: { message: `Visite chez ${nom} ${aCompleter ? 'complétée' : 'modifiée'} ✓` },
+    })
   }
 
   return (
     <div className="min-h-screen bg-slate-100 pb-32">
       <AdalaHeader
-        titre={nom ? `Compléter : ${nom}` : 'Compléter la visite'}
+        titre={nom ? `${aCompleter ? 'Compléter' : 'Modifier'} : ${nom}` : 'Visite'}
         droite={
           <Link to="/visites" className="rounded-lg px-3 py-2 text-sm text-slate-300">
             Retour

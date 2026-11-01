@@ -138,6 +138,7 @@ export interface Visite {
   photo_path: string
   photo_prise_a: string | null
   synchro_differee: boolean
+  modifiee_le: string | null
   appareil_id: string | null
   modele_appareil: string | null
   drive_dossier_id: string | null

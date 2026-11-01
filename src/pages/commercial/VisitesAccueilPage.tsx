@@ -24,8 +24,14 @@ interface LigneVisite {
   commerce: { nom: string; commune: string | null } | null
 }
 
+/** Une visite reste modifiable 7 jours (même limite côté base). */
+const DELAI_MODIFICATION_MS = 7 * 24 * 3600000
+
 interface Affichage {
   cle: string
+  /** Visite déjà reçue par le serveur, donc modifiable. */
+  id?: string
+  date?: string
   nom: string
   commune: string | null
   resultat: ResultatVisite
@@ -116,6 +122,16 @@ export default function VisitesAccueilPage() {
 
   const aujourdhui = debutJour()
   const semaine = debutSemaine()
+  const versAffichage = (v: LigneVisite): Affichage => ({
+    cle: v.id,
+    id: v.id,
+    date: v.heure_appareil,
+    nom: v.commerce?.nom ?? '—',
+    commune: v.commerce?.commune ?? null,
+    resultat: v.resultat,
+    plateaux: v.plateaux,
+    palettes: v.palettes,
+  })
   const duJour: Affichage[] = [
     ...enAttente
       .filter((v) => new Date(v.heure_appareil) >= aujourdhui)
@@ -129,17 +145,15 @@ export default function VisitesAccueilPage() {
         enAttente: true,
         refus: v.derniere_erreur,
       })),
-    ...visites
-      .filter((v) => new Date(v.heure_appareil) >= aujourdhui)
-      .map((v) => ({
-        cle: v.id,
-        nom: v.commerce?.nom ?? '—',
-        commune: v.commerce?.commune ?? null,
-        resultat: v.resultat,
-        plateaux: v.plateaux,
-        palettes: v.palettes,
-      })),
+    ...visites.filter((v) => new Date(v.heure_appareil) >= aujourdhui).map(versAffichage),
   ]
+  const precedentes = visites
+    .filter(
+      (v) =>
+        new Date(v.heure_appareil) < aujourdhui &&
+        Date.now() - new Date(v.heure_appareil).getTime() < DELAI_MODIFICATION_MS
+    )
+    .map(versAffichage)
   const nbSemaine =
     visites.filter((v) => new Date(v.heure_appareil) >= semaine).length +
     enAttente.filter((v) => new Date(v.heure_appareil) >= semaine).length
@@ -257,34 +271,77 @@ export default function VisitesAccueilPage() {
           ) : duJour.length === 0 ? (
             <p className="py-4 text-center text-slate-400">Aucune visite pour l'instant.</p>
           ) : (
-            <ul className="divide-y divide-slate-100">
-              {duJour.map((v) => (
-                <li key={v.cle} className="flex items-center justify-between gap-3 py-3">
-                  <div className="min-w-0">
-                    <p className="truncate font-medium text-slate-900">{v.nom}</p>
-                    {v.commune && <p className="truncate text-sm text-slate-500">{v.commune}</p>}
-                    {v.enAttente && (
-                      <p className={`text-xs ${v.refus ? 'text-red-600' : 'text-amber-700'}`}>
-                        {v.refus ? `Non envoyée : ${v.refus}` : "En attente d'envoi"}
-                      </p>
-                    )}
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <span className={`rounded-full px-2 py-1 text-xs font-semibold ${BADGE_RESULTAT[v.resultat]}`}>
-                      {LABEL_RESULTAT[v.resultat]}
-                    </span>
-                    {(!!v.plateaux || !!v.palettes) && (
-                      <p className="mt-1 text-xs text-slate-500">
-                        {v.plateaux ? `${v.plateaux} plat.` : ''} {v.palettes ? `${v.palettes} pal.` : ''}
-                      </p>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
+            <ListeVisites visites={duJour} />
+          )}
+          {duJour.some((v) => v.id) && (
+            <p className="mt-2 text-center text-xs text-slate-400">Touche une visite pour la modifier.</p>
           )}
         </section>
+
+        {precedentes.length > 0 && (
+          <section className="rounded-2xl bg-white p-4 shadow-sm">
+            <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
+              Jours précédents (modifiables 7 jours)
+            </h2>
+            <ListeVisites visites={precedentes} avecDate />
+          </section>
+        )}
       </main>
     </div>
+  )
+}
+
+function ListeVisites({ visites, avecDate = false }: { visites: Affichage[]; avecDate?: boolean }) {
+  return (
+    <ul className="divide-y divide-slate-100">
+      {visites.map((v) => {
+        const contenu = (
+          <>
+            <div className="min-w-0">
+              <p className="truncate font-medium text-slate-900">{v.nom}</p>
+              <p className="truncate text-sm text-slate-500">
+                {[
+                  avecDate && v.date
+                    ? new Date(v.date).toLocaleDateString('fr-BE', { weekday: 'short', day: 'numeric', month: 'short' })
+                    : null,
+                  v.commune,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </p>
+              {v.enAttente && (
+                <p className={`text-xs ${v.refus ? 'text-red-600' : 'text-amber-700'}`}>
+                  {v.refus ? `Non envoyée : ${v.refus}` : "En attente d'envoi"}
+                </p>
+              )}
+            </div>
+            <div className="flex shrink-0 items-center gap-2 text-right">
+              <div>
+                <span className={`rounded-full px-2 py-1 text-xs font-semibold ${BADGE_RESULTAT[v.resultat]}`}>
+                  {LABEL_RESULTAT[v.resultat]}
+                </span>
+                {(!!v.plateaux || !!v.palettes) && (
+                  <p className="mt-1 text-xs text-slate-500">
+                    {v.plateaux ? `${v.plateaux} plat.` : ''} {v.palettes ? `${v.palettes} pal.` : ''}
+                  </p>
+                )}
+              </div>
+              {v.id && <span className="text-lg text-slate-400">✎</span>}
+            </div>
+          </>
+        )
+        return (
+          <li key={v.cle}>
+            {v.id ? (
+              <Link to={`/visites/${v.id}/completer`} className="flex items-center justify-between gap-3 py-3 active:bg-slate-50">
+                {contenu}
+              </Link>
+            ) : (
+              <div className="flex items-center justify-between gap-3 py-3">{contenu}</div>
+            )}
+          </li>
+        )
+      })}
+    </ul>
   )
 }
