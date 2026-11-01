@@ -12,6 +12,7 @@ import FicheHeuresPage from './pages/admin/FicheHeuresPage'
 import VisitesAccueilPage from './pages/commercial/VisitesAccueilPage'
 import NouvelleVisitePage from './pages/commercial/NouvelleVisitePage'
 import CompleterVisitePage from './pages/commercial/CompleterVisitePage'
+import EnvoyerListePage from './pages/commercial/EnvoyerListePage'
 import AdminVisitesPage from './pages/admin/AdminVisitesPage'
 import AdminVisiteFichePage from './pages/admin/AdminVisiteFichePage'
 import AdminCommercesPage from './pages/admin/AdminCommercesPage'
@@ -79,6 +80,14 @@ export default function App() {
             element={
               <ProtectedRoute requireRole="commercial">
                 <CompleterVisitePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/visites/envoyer"
+            element={
+              <ProtectedRoute requireRole="commercial">
+                <EnvoyerListePage />
               </ProtectedRoute>
             }
           />

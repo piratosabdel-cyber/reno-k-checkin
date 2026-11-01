@@ -1,16 +1,16 @@
 import { envoyerListe } from './_lib/recap.js'
 import { roleAppelant, supabaseAdmin, type VercelRequest, type VercelResponse } from './_lib/serveur.js'
 
-// L'admin envoie à order@adalacola.com une liste de visites qu'il a choisie
-// (cochées, ou toutes celles du filtre affiché).
+// La commerciale (ses visites) ou l'admin envoie à order@adalacola.com une
+// liste de visites choisie : cochées, ou toutes celles du filtre affiché.
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Méthode non autorisée' })
     return
   }
   const appelant = await roleAppelant(req)
-  if (appelant?.role !== 'admin') {
-    res.status(403).json({ error: 'Réservé aux administrateurs.' })
+  if (!appelant || !['admin', 'commercial'].includes(appelant.role)) {
+    res.status(403).json({ error: 'Non autorisé.' })
     return
   }
 
@@ -23,7 +23,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const titre = typeof body.titre === 'string' && body.titre.trim() ? body.titre.trim().slice(0, 150) : 'Liste de visites Adala'
 
   try {
-    res.status(200).json(await envoyerListe(supabaseAdmin(), ids, titre))
+    res
+      .status(200)
+      .json(await envoyerListe(supabaseAdmin(), ids, titre, appelant.role === 'commercial' ? appelant.id : null))
   } catch (e) {
     res.status(500).json({ error: e instanceof Error ? e.message : String(e) })
   }

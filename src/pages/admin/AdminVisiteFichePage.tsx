@@ -5,8 +5,8 @@ import 'leaflet/dist/leaflet.css'
 import { supabase } from '../../lib/supabase'
 import type { VisiteAvecRelations } from '../../types/database'
 import { BADGE_RESULTAT, LABEL_RESULTAT, LABEL_STATUT, LABEL_TYPE } from '../../lib/visites'
-import { SELECT_VISITE, appelAdmin, duree, heure, liensPhotos, lienCarte, lienDrive } from '../../lib/visitesAdmin'
-import { demanderArchivageDrive } from '../../lib/visitesQueue'
+import { SELECT_VISITE, duree, heure, liensPhotos, lienCarte, lienDrive } from '../../lib/visitesAdmin'
+import { appelServeur, demanderArchivageDrive } from '../../lib/visitesQueue'
 import ChampsVisite, { DETAILS_VIDES, type DetailsVisite } from '../../components/visites/ChampsVisite'
 
 function Ligne({ label, children }: { label: string; children: ReactNode }) {
@@ -111,7 +111,7 @@ export default function AdminVisiteFichePage() {
     )
       return
     setOccupe(true)
-    const r = await appelAdmin('/api/supprimer-visite', { id: v.id })
+    const r = await appelServeur('/api/supprimer-visite', { id: v.id })
     setOccupe(false)
     if (r.erreur) {
       setErreur(r.erreur)

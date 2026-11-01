@@ -213,6 +213,13 @@ export default function VisitesAccueilPage() {
           </div>
         </div>
 
+        <Link
+          to="/visites/envoyer"
+          className="flex min-h-14 items-center justify-center gap-2 rounded-2xl border-2 border-[#b83a2c] bg-white text-lg font-semibold text-[#b83a2c] active:bg-red-50"
+        >
+          ✉ Envoyer une liste à order@
+        </Link>
+
         {enAttente.length > 0 && (
           <div className="flex items-center justify-between gap-3 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
             <span>
@@ -274,7 +281,7 @@ export default function VisitesAccueilPage() {
             <ListeVisites visites={duJour} />
           )}
           {duJour.some((v) => v.id) && (
-            <p className="mt-2 text-center text-xs text-slate-400">Touche une visite pour la modifier.</p>
+            <p className="mt-2 text-center text-xs text-slate-400">Touche une visite pour la voir, la modifier ou l'effacer.</p>
           )}
         </section>
 

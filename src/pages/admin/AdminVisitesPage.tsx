@@ -12,7 +12,8 @@ import {
   dateLocale,
   debutSemaine,
 } from '../../lib/visites'
-import { SELECT_VISITE, appelAdmin, dateCourte, duree, exporterVisites, heure, liensPhotos } from '../../lib/visitesAdmin'
+import { SELECT_VISITE, dateCourte, duree, exporterVisites, heure, liensPhotos } from '../../lib/visitesAdmin'
+import { appelServeur } from '../../lib/visitesQueue'
 import VisitesMap from '../../components/visites/VisitesMap'
 import StatsVisites from '../../components/visites/StatsVisites'
 import EquipeCommerciale from '../../components/visites/EquipeCommerciale'
@@ -123,7 +124,7 @@ export default function AdminVisitesPage() {
       .join(' — ')
     if (!window.confirm(`Envoyer ${aEnvoyer.length} visite(s) à order@adalacola.com ?\n\n« ${titre} »`)) return
     setEnvoi({ enCours: true, message: null, ok: true })
-    const r = await appelAdmin('/api/envoyer-liste', { ids: aEnvoyer.map((v) => v.id), titre })
+    const r = await appelServeur('/api/envoyer-liste', { ids: aEnvoyer.map((v) => v.id), titre })
     setEnvoi(
       r.erreur
         ? { enCours: false, message: `Envoi impossible : ${r.erreur}`, ok: false }

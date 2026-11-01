@@ -208,6 +208,23 @@ export async function synchroniserVisites(commercialId: string): Promise<{ envoy
   return { envoyees, restantes: restantes.length }
 }
 
+/** Appel d'une fonction serveur avec la session en cours ; renvoie le message d'erreur éventuel. */
+export async function appelServeur(chemin: string, corps: unknown): Promise<{ erreur: string | null }> {
+  const { data } = await supabase.auth.getSession()
+  try {
+    const res = await fetch(chemin, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${data.session?.access_token ?? ''}` },
+      body: JSON.stringify(corps),
+    })
+    if (res.ok) return { erreur: null }
+    const json = (await res.json().catch(() => ({}))) as { error?: string }
+    return { erreur: json.error ?? `Erreur ${res.status}` }
+  } catch {
+    return { erreur: 'Pas de connexion.' }
+  }
+}
+
 /** Demande au serveur de copier les nouvelles visites dans Google Drive (sans attendre). */
 export async function demanderArchivageDrive() {
   try {

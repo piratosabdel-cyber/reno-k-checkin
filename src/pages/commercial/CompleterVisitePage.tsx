@@ -1,42 +1,50 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
-import { demanderArchivageDrive } from '../../lib/visitesQueue'
-import type { Visite } from '../../types/database'
+import { appelServeur, demanderArchivageDrive } from '../../lib/visitesQueue'
+import { TYPES_COMMERCE } from '../../lib/visites'
+import type { TypeCommerce, Visite } from '../../types/database'
 import AdalaHeader from '../../components/visites/AdalaHeader'
-import ChampsVisite, { DETAILS_VIDES, type DetailsVisite } from '../../components/visites/ChampsVisite'
+import ChampsVisite, { DETAILS_VIDES, Puce, Section, type DetailsVisite } from '../../components/visites/ChampsVisite'
+
+const DELAI_MODIFICATION_MS = 7 * 24 * 3600000
+
+interface VisiteChargee extends Visite {
+  commerce: { nom: string; type: TypeCommerce; adresse: string | null; commune: string | null }
+}
 
 /**
- * Complète une visite enregistrée en vitesse, ou modifie une visite des
- * 7 derniers jours. GPS, heure et photo restent ceux de la visite.
+ * Fiche d'une visite côté commerciale : tout se modifie pendant 7 jours,
+ * sauf la photo, l'adresse, l'heure et la position GPS (affichées seulement).
  */
 export default function CompleterVisitePage() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const [visite, setVisite] = useState<VisiteChargee | null>(null)
+  const [photo, setPhoto] = useState<string | null>(null)
   const [nom, setNom] = useState('')
-  const [aCompleter, setACompleter] = useState(true)
+  const [type, setType] = useState<TypeCommerce>('autre')
   const [details, setDetails] = useState<DetailsVisite | null>(null)
+  const [modifiable, setModifiable] = useState(true)
   const [erreur, setErreur] = useState<string | null>(null)
   const [envoi, setEnvoi] = useState(false)
 
   useEffect(() => {
     supabase
       .from('visites')
-      .select('*, commerce:commerces(nom)')
+      .select('*, commerce:commerces(nom, type, adresse, commune)')
       .eq('id', id!)
       .single()
-      .then(({ data, error }) => {
+      .then(async ({ data, error }) => {
         if (error || !data) {
-          setErreur(navigator.onLine ? 'Visite introuvable.' : 'Connecte-toi à internet pour compléter cette visite.')
+          setErreur(navigator.onLine ? 'Visite introuvable.' : 'Connecte-toi à internet pour ouvrir cette visite.')
           return
         }
-        const v = data as Visite & { commerce: { nom: string } }
+        const v = data as VisiteChargee
+        setVisite(v)
         setNom(v.commerce.nom)
-        setACompleter(v.a_completer)
-        if (Date.now() - new Date(v.heure_serveur).getTime() > 7 * 24 * 3600000) {
-          setErreur('Cette visite a plus de 7 jours : elle ne peut plus être modifiée.')
-          return
-        }
+        setType(v.type_commerce ?? v.commerce.type)
+        setModifiable(Date.now() - new Date(v.heure_serveur).getTime() < DELAI_MODIFICATION_MS)
         setDetails({
           ...DETAILS_VIDES,
           resultat: v.resultat,
@@ -50,21 +58,38 @@ export default function CompleterVisitePage() {
           contact_telephone: v.contact_telephone ?? '',
           contact_email: v.contact_email ?? '',
         })
+        const { data: lien } = await supabase.storage.from('visites-photos').createSignedUrl(v.photo_path, 3600)
+        setPhoto(lien?.signedUrl ?? null)
       })
   }, [id])
 
   async function enregistrer() {
-    if (!details) return
+    if (!details || !visite) return
+    if (!nom.trim()) {
+      setErreur('Indique le nom du commerce.')
+      return
+    }
     if (details.resultat === 'precommande' && details.plateaux + details.palettes === 0) {
       setErreur('Indique le nombre de plateaux ou de palettes.')
       return
     }
     setEnvoi(true)
     setErreur(null)
+
+    if (nom.trim() !== visite.commerce.nom || type !== visite.commerce.type) {
+      const { error } = await supabase.rpc('modifier_commerce_visite', { p_visite: visite.id, p_nom: nom, p_type: type })
+      if (error) {
+        setEnvoi(false)
+        setErreur(navigator.onLine ? `Commerce non modifié (${error.message}).` : 'Pas de connexion : réessaie dans un instant.')
+        return
+      }
+    }
+
     const d = details
     const { data: maj, error } = await supabase
       .from('visites')
       .update({
+        type_commerce: type,
         resultat: d.resultat,
         plateaux: d.resultat === 'precommande' ? d.plateaux : null,
         palettes: d.resultat === 'precommande' ? d.palettes : null,
@@ -92,14 +117,37 @@ export default function CompleterVisitePage() {
     demanderArchivageDrive()
     navigate('/visites', {
       replace: true,
-      state: { message: `Visite chez ${nom} ${aCompleter ? 'complétée' : 'modifiée'} ✓` },
+      state: { message: `Visite chez ${nom.trim()} ${visite.a_completer ? 'complétée' : 'modifiée'} ✓` },
     })
   }
 
+  async function effacer() {
+    if (!visite) return
+    if (!window.confirm(`Effacer la visite chez ${visite.commerce.nom} ?\n\nLa visite et sa photo seront supprimées.`)) return
+    setEnvoi(true)
+    const r = await appelServeur('/api/supprimer-visite', { id: visite.id })
+    setEnvoi(false)
+    if (r.erreur) {
+      setErreur(r.erreur)
+      return
+    }
+    navigate('/visites', { replace: true, state: { message: `Visite chez ${visite.commerce.nom} effacée` } })
+  }
+
+  const date = visite
+    ? new Date(visite.heure_appareil).toLocaleString('fr-BE', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    : ''
+
   return (
-    <div className="min-h-screen bg-slate-100 pb-32">
+    <div className="min-h-screen bg-slate-100 pb-40">
       <AdalaHeader
-        titre={nom ? `${aCompleter ? 'Compléter' : 'Modifier'} : ${nom}` : 'Visite'}
+        titre={visite ? visite.commerce.nom : 'Visite'}
         droite={
           <Link to="/visites" className="rounded-lg px-3 py-2 text-sm text-slate-300">
             Retour
@@ -107,20 +155,68 @@ export default function CompleterVisitePage() {
         }
       />
       <main className="mx-auto max-w-3xl space-y-3 px-3 py-3">
-        {details ? (
-          <ChampsVisite details={details} onChange={setDetails} contactConnu={!!details.contact_nom} />
-        ) : (
-          !erreur && <p className="py-10 text-center text-slate-400">Chargement…</p>
+        {visite && (
+          <section className="overflow-hidden rounded-2xl bg-white shadow-sm">
+            {photo ? (
+              <a href={photo} target="_blank" rel="noreferrer">
+                <img src={photo} alt="Photo de la visite" className="max-h-80 w-full bg-slate-200 object-contain" />
+              </a>
+            ) : (
+              <div className="flex h-40 items-center justify-center bg-slate-200 text-slate-500">Photo…</div>
+            )}
+            <div className="space-y-1 p-4 text-sm">
+              <p className="text-slate-500 first-letter:uppercase">{date}</p>
+              <p className="text-slate-800">
+                📍 {[visite.commerce.adresse ?? visite.adresse_gps, visite.commerce.commune].filter(Boolean).join(', ') || '—'}
+              </p>
+              <p className="text-xs text-slate-400">La photo et l'adresse ne se modifient pas.</p>
+            </div>
+          </section>
         )}
+
+        {visite && !modifiable && (
+          <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            Cette visite a plus de 7 jours : elle ne peut plus être modifiée.
+          </p>
+        )}
+
+        {details && modifiable && (
+          <>
+            <Section titre="Commerce">
+              <input
+                value={nom}
+                onChange={(e) => setNom(e.target.value)}
+                placeholder="Nom du commerce"
+                className="mb-3 w-full rounded-xl border border-slate-300 px-4 py-3 text-lg"
+              />
+              <div className="flex flex-wrap gap-2">
+                {TYPES_COMMERCE.map((t) => (
+                  <Puce key={t.valeur} actif={type === t.valeur} onClick={() => setType(t.valeur)}>
+                    {t.emoji} {t.label}
+                  </Puce>
+                ))}
+              </div>
+            </Section>
+            <ChampsVisite details={details} onChange={setDetails} contactConnu={!!details.contact_nom} />
+            <button
+              onClick={effacer}
+              disabled={envoi}
+              className="w-full rounded-xl border-2 border-red-200 bg-white py-3 font-semibold text-red-700 disabled:opacity-50"
+            >
+              🗑 Effacer cette visite
+            </button>
+          </>
+        )}
+        {!visite && !erreur && <p className="py-10 text-center text-slate-400">Chargement…</p>}
       </main>
-      <div className="fixed inset-x-0 bottom-0 border-t border-slate-200 bg-white/95 px-3 py-3">
+      <div className="fixed inset-x-0 bottom-0 z-[600] border-t border-slate-200 bg-white/95 px-3 py-3">
         <div className="mx-auto max-w-3xl space-y-2">
           {erreur && (
             <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
               {erreur}
             </p>
           )}
-          {details && (
+          {details && modifiable && (
             <button
               onClick={enregistrer}
               disabled={envoi}

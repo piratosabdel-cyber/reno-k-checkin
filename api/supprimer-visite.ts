@@ -1,16 +1,17 @@
 import { retirerVisiteDuDrive } from './_lib/drive.js'
 import { roleAppelant, supabaseAdmin, type VercelRequest, type VercelResponse } from './_lib/serveur.js'
 
-// Suppression d'une visite par l'admin : la visite, ses alertes et sa photo
-// sont effacées ; le dossier Drive part à la corbeille.
+// Suppression d'une visite par l'admin, ou par la commerciale pour ses propres
+// visites des 7 derniers jours : la visite, ses alertes et sa photo sont
+// effacées ; le dossier Drive part à la corbeille.
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Méthode non autorisée' })
     return
   }
   const appelant = await roleAppelant(req)
-  if (appelant?.role !== 'admin') {
-    res.status(403).json({ error: 'Réservé aux administrateurs.' })
+  if (!appelant || !['admin', 'commercial'].includes(appelant.role)) {
+    res.status(403).json({ error: 'Non autorisé.' })
     return
   }
 
@@ -23,11 +24,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const db = supabaseAdmin()
   const { data: v } = await db
     .from('visites')
-    .select('id, commerce_id, photo_path, drive_dossier_id')
+    .select('id, commerce_id, commercial_id, heure_serveur, photo_path, drive_dossier_id')
     .eq('id', body.id)
     .maybeSingle()
   if (!v) {
     res.status(404).json({ error: 'Visite introuvable.' })
+    return
+  }
+  if (
+    appelant.role === 'commercial' &&
+    (v.commercial_id !== appelant.id || Date.now() - new Date(v.heure_serveur as string).getTime() > 7 * 24 * 3600000)
+  ) {
+    res.status(403).json({ error: 'Cette visite ne peut plus être effacée.' })
     return
   }
 

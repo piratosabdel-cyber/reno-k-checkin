@@ -25,7 +25,9 @@ La position est lue **uniquement** au moment où tu ouvres et enregistres une vi
 
 **Pas le temps ?** Prends juste la photo, choisis le résultat, puis appuie sur **« Enregistrer et compléter plus tard »**. La visite apparaît en haut de l'écran d'accueil dans **À compléter**.
 
-**Un oubli ?** Sur l'écran d'accueil, touche la visite (✎) pour ajouter ou corriger une info : résultat, quantités, contact, relance, commentaire. C'est possible pendant **7 jours**. La photo, l'heure et la position GPS ne changent pas.
+**Un oubli ?** Sur l'écran d'accueil, touche la visite (✎) : tu revois la photo et l'adresse, et tu peux tout corriger (nom et type du commerce, résultat, quantités, contact, relance, commentaire) ou **effacer** la visite. C'est possible pendant **7 jours**. La photo, l'adresse, l'heure et la position GPS ne changent pas.
+
+**Envoyer une liste à order@** : sur l'écran d'accueil, bouton **« ✉ Envoyer une liste à order@ »**. Choisis la période (aujourd'hui, semaine, 30 jours) et, si tu veux, un type de commerce. Coche des visites pour n'envoyer qu'elles, sinon toute la liste part.
 
 ## 4. Sans réseau
 Rien à faire : la visite est gardée sur l'appareil et part toute seule dès que le réseau revient. Le message « en attente d'envoi » disparaît alors. **Ne désinstalle pas l'app** tant qu'il reste des visites en attente.

@@ -102,6 +102,20 @@ class Drive {
     })
   }
 
+  /** Renomme un dossier et le range sous `parent` s'il n'y est pas déjà. */
+  async deplacer(id: string, nom: string, parent: string) {
+    const { parents = [] } = await this.appel<{ parents?: string[] }>(`${DRIVE}/${id}?fields=parents`, { method: 'GET' })
+    const ailleurs = parents.filter((p) => p !== parent)
+    const params = new URLSearchParams({ fields: 'id' })
+    if (!parents.includes(parent)) params.set('addParents', parent)
+    if (ailleurs.length) params.set('removeParents', ailleurs.join(','))
+    await this.appel(`${DRIVE}/${id}?${params}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: nom }),
+    })
+  }
+
   async corbeille(id: string) {
     await this.appel(`${DRIVE}/${id}?fields=id`, {
       method: 'PATCH',
@@ -284,14 +298,18 @@ async function archiverVisite(db: SupabaseClient, drive: Drive, visiteId: string
   const c = cData as CommerceComplet
 
   // Dossier du commerce, rangé par type.
+  const parent = await dossierType(db, drive, c.type)
+  const nomCommerce = [c.nom, c.commune].filter(Boolean).join(' — ')
   if (!c.drive_dossier_id || !c.drive_visites_dossier_id) {
-    const parent = await dossierType(db, drive, c.type)
-    c.drive_dossier_id = await drive.dossier([c.nom, c.commune].filter(Boolean).join(' — '), parent)
+    c.drive_dossier_id = await drive.dossier(nomCommerce, parent)
     c.drive_visites_dossier_id = await drive.dossier('Visites', c.drive_dossier_id)
     await db
       .from('commerces')
       .update({ drive_dossier_id: c.drive_dossier_id, drive_visites_dossier_id: c.drive_visites_dossier_id })
       .eq('id', c.id)
+  } else {
+    // Nom ou type corrigé depuis la tablette : le dossier suit.
+    await drive.deplacer(c.drive_dossier_id, nomCommerce, parent)
   }
 
   // Lien temporaire vers la photo : Google l'intègre dans le rapport.

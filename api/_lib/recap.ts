@@ -130,16 +130,26 @@ interface LigneListe {
   commercial: { full_name: string } | null
 }
 
-/** Liste de visites choisie par l'admin (sélection ou filtre), envoyée à order@adalacola.com. */
-export async function envoyerListe(db: SupabaseClient, ids: string[], titre: string): Promise<{ visites: number }> {
-  const { data, error } = await db
+/**
+ * Liste de visites choisie (sélection ou filtre), envoyée à order@adalacola.com.
+ * `commercialId` : limite aux visites de cette commerciale.
+ */
+export async function envoyerListe(
+  db: SupabaseClient,
+  ids: string[],
+  titre: string,
+  commercialId: string | null
+): Promise<{ visites: number }> {
+  let requete = db
     .from('visites')
     .select(
       'id, resultat, plateaux, palettes, heure_serveur, date_relance, remarques, commentaire, contact_nom, contact_fonction, contact_telephone, contact_email, type_commerce, drive_dossier_id, commerce:commerces(nom, adresse, commune, type), commercial:profiles(full_name)'
     )
     .in('id', ids)
-    .order('heure_serveur', { ascending: false })
+  if (commercialId) requete = requete.eq('commercial_id', commercialId)
+  const { data, error } = await requete.order('heure_serveur', { ascending: false })
   if (error) throw new Error(error.message)
+  if (!data?.length) throw new Error('Aucune visite à envoyer.')
   const visites = (data as unknown as LigneListe[]) ?? []
 
   const td = 'style="border:1px solid #e5e7eb;padding:6px 8px;font-size:13px;vertical-align:top"'

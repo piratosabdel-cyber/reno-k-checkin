@@ -5,22 +5,6 @@ import type { VisiteAvecRelations } from '../types/database'
 export const SELECT_VISITE =
   '*, commerce:commerces(id, nom, commune, type, statut, latitude, longitude), commercial:profiles(id, full_name), alertes:visites_alertes(code, detail)'
 
-/** Appel d'une fonction serveur réservée à l'admin ; renvoie le message d'erreur éventuel. */
-export async function appelAdmin(chemin: string, corps: unknown): Promise<{ erreur: string | null; data?: unknown }> {
-  const { data } = await supabase.auth.getSession()
-  try {
-    const res = await fetch(chemin, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${data.session?.access_token ?? ''}` },
-      body: JSON.stringify(corps),
-    })
-    const json = await res.json().catch(() => ({}))
-    return res.ok ? { erreur: null, data: json } : { erreur: (json as { error?: string }).error ?? `Erreur ${res.status}` }
-  } catch {
-    return { erreur: 'Pas de connexion.' }
-  }
-}
-
 /** Liens temporaires (1 h) vers les photos privées. */
 export async function liensPhotos(paths: string[]): Promise<Record<string, string>> {
   if (paths.length === 0) return {}
