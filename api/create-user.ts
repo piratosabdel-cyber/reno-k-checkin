@@ -27,7 +27,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { error } = await supabaseAdmin().auth.admin.createUser({
+    const admin = supabaseAdmin()
+    const { data, error } = await admin.auth.admin.createUser({
       email: body.email.trim(),
       password: body.password,
       email_confirm: true,
@@ -36,6 +37,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     })
     if (error) {
       res.status(400).json({ error: error.message })
+      return
+    }
+    // Supabase pose app_metadata après l'insertion : le trigger handle_new_user
+    // crée donc toujours le profil en « ouvrier ». On corrige le rôle ici.
+    const { error: erreurProfil } = await admin.from('profiles').update({ role }).eq('id', data.user.id)
+    if (erreurProfil) {
+      res.status(500).json({ error: erreurProfil.message })
       return
     }
     res.status(200).json({ ok: true })
