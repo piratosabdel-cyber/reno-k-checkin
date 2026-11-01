@@ -68,7 +68,6 @@ const ICONES: Record<string, ReactNode> = {
   entreprise: <><rect x="4" y="3" width="16" height="18" rx="1" /><path d="M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2M10 21v-3h4v3" /></>,
   facture: <><path d="M6 2h9l5 5v15H6z" /><path d="M14 2v6h6M9 13h7M9 17h7" /></>,
   livraison: <><path d="M1 4h13v12H1zM14 8h4l3 4v4h-7" /><circle cx="5.5" cy="18.5" r="2" /><circle cx="17.5" cy="18.5" r="2" /></>,
-  tva: <><path d="M19 5 5 19" /><circle cx="7" cy="7" r="2.5" /><circle cx="17" cy="17" r="2.5" /></>,
   reseau: <><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4" /></>,
 }
 
@@ -372,7 +371,6 @@ export default function ChampsVisite({
             {!livraisonIdentique && (
               <ChampIcone icone="livraison" lignes={2} valeur={details.adresse_livraison} onValeur={(v) => set('adresse_livraison', v)} placeholder="Adresse de livraison" />
             )}
-            <ChampIcone icone="tva" autoCapitalize="characters" valeur={details.numero_tva} onValeur={(v) => set('numero_tva', v.toUpperCase())} placeholder="N° de TVA (ex. BE0123.456.789)" />
             <ChampIcone icone="reseau" inputMode="url" autoCapitalize="none" valeur={details.reseau_social} onValeur={(v) => set('reseau_social', v)} placeholder="Réseaux sociaux (Instagram, Facebook…)" />
           </div>
         )}
