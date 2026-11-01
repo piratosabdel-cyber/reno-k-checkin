@@ -151,6 +151,10 @@ interface VisiteComplete {
   contact_fonction: string | null
   contact_telephone: string | null
   contact_email: string | null
+  reseau_social: string | null
+  adresse_livraison: string | null
+  adresse_facturation: string | null
+  numero_tva: string | null
   type_commerce: string | null
   lat_envoi: number | null
   lng_envoi: number | null
@@ -179,6 +183,10 @@ interface CommerceComplet {
   contact_fonction: string | null
   contact_telephone: string | null
   contact_email: string | null
+  reseau_social: string | null
+  adresse_livraison: string | null
+  adresse_facturation: string | null
+  numero_tva: string | null
   drive_dossier_id: string | null
   drive_visites_dossier_id: string | null
   drive_fiche_id: string | null
@@ -220,11 +228,15 @@ ${ligne('Adresse', echapper(c.adresse))}
 ${ligne('Commune', echapper(c.commune))}
 ${ligne('Statut', echapper(LABEL_STATUT[c.statut]))}
 </table>
-<h2>Personne rencontrée</h2><table>
+<h2>Contact client</h2><table>
 ${ligne('Nom', echapper(v.contact_nom))}
 ${ligne('Fonction', echapper(v.contact_fonction))}
 ${ligne('Téléphone', echapper(v.contact_telephone))}
 ${ligne('E-mail', echapper(v.contact_email))}
+${ligne('Réseau social', echapper(v.reseau_social))}
+${ligne('Adresse de livraison', echapper(v.adresse_livraison))}
+${ligne('Adresse de facturation', echapper(v.adresse_facturation))}
+${ligne('N° de TVA', echapper(v.numero_tva))}
 </table>
 <h2>Localisation</h2><table>
 ${ligne('Adresse (GPS)', echapper(v.adresse_gps))}
@@ -259,6 +271,10 @@ ${ligne('Position', carte(c.latitude, c.longitude))}
 ${ligne('Contact', echapper([c.contact_nom, c.contact_fonction].filter(Boolean).join(' · ')))}
 ${ligne('Téléphone', echapper(c.contact_telephone))}
 ${ligne('E-mail', echapper(c.contact_email))}
+${ligne('Réseau social', echapper(c.reseau_social))}
+${ligne('Adresse de livraison', echapper(c.adresse_livraison))}
+${ligne('Adresse de facturation', echapper(c.adresse_facturation))}
+${ligne('N° de TVA', echapper(c.numero_tva))}
 </table>
 <h2>Résumé</h2><table>
 ${ligne('Visites', String(visites.length))}
@@ -273,7 +289,7 @@ ${ligne('Prochaine relance', prochaine ? dateBxl(`${prochaine}T12:00:00Z`) : nul
 }
 
 const SELECT_VISITE =
-  'id, commerce_id, resultat, plateaux, palettes, date_relance, remarques, commentaire, contact_nom, contact_fonction, contact_telephone, contact_email, type_commerce, lat_envoi, lng_envoi, lat_ouverture, lng_ouverture, precision_envoi_m, adresse_gps, heure_serveur, photo_path, a_completer, drive_dossier_id, drive_rapport_id, commercial:profiles(full_name)'
+  'id, commerce_id, resultat, plateaux, palettes, date_relance, remarques, commentaire, contact_nom, contact_fonction, contact_telephone, contact_email, reseau_social, adresse_livraison, adresse_facturation, numero_tva, type_commerce, lat_envoi, lng_envoi, lat_ouverture, lng_ouverture, precision_envoi_m, adresse_gps, heure_serveur, photo_path, a_completer, drive_dossier_id, drive_rapport_id, commercial:profiles(full_name)'
 
 async function dossierType(db: SupabaseClient, drive: Drive, type: string): Promise<string> {
   let racine = await lireReglage(db, 'drive_racine')

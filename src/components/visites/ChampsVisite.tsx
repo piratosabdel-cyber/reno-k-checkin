@@ -13,6 +13,22 @@ export interface DetailsVisite {
   contact_fonction: string
   contact_telephone: string
   contact_email: string
+  reseau_social: string
+  adresse_livraison: string
+  adresse_facturation: string
+  numero_tva: string
+}
+
+/** Tout ce qui décrit le client (et se reprend d'une visite à l'autre). */
+export const INFOS_CLIENT_VIDES = {
+  contact_nom: '',
+  contact_fonction: '',
+  contact_telephone: '',
+  contact_email: '',
+  reseau_social: '',
+  adresse_livraison: '',
+  adresse_facturation: '',
+  numero_tva: '',
 }
 
 export const DETAILS_VIDES: DetailsVisite = {
@@ -22,10 +38,16 @@ export const DETAILS_VIDES: DetailsVisite = {
   date_relance: null,
   remarques: [],
   commentaire: '',
-  contact_nom: '',
-  contact_fonction: '',
-  contact_telephone: '',
-  contact_email: '',
+  ...INFOS_CLIENT_VIDES,
+}
+
+/** « Rue 1, 1730 Asse » sans répéter la commune déjà présente dans l'adresse. */
+export function adresseComplete(c: { adresse: string | null; commune: string | null } | null): string | null {
+  if (!c) return null
+  const adresse = c.adresse ?? ''
+  if (c.commune && !adresse.toLowerCase().includes(c.commune.toLowerCase()))
+    return [adresse, c.commune].filter(Boolean).join(', ')
+  return adresse || c.commune || null
 }
 
 export function Section({ titre, children }: { titre: string; children: ReactNode }) {
@@ -121,11 +143,14 @@ export default function ChampsVisite({
   details,
   onChange,
   contactConnu,
+  adresseCommerce,
 }: {
   details: DetailsVisite
   onChange: (d: DetailsVisite) => void
   /** Contact déjà connu du commerce : affiché replié pour ne pas le retaper. */
   contactConnu?: boolean
+  /** Proposée en un toucher comme adresse de livraison. */
+  adresseCommerce?: string | null
 }) {
   const [contactOuvert, setContactOuvert] = useState(!contactConnu)
   const [unite, setUnite] = useState<'plateaux' | 'palettes'>(
@@ -235,7 +260,7 @@ export default function ChampsVisite({
         />
       </Section>
 
-      <Section titre="Personne rencontrée">
+      <Section titre="Contact client">
         {!contactOuvert ? (
           <button
             type="button"
@@ -287,6 +312,58 @@ export default function ChampsVisite({
                 className="w-full rounded-xl border border-slate-300 px-4 py-3 text-base"
               />
             </div>
+            <input
+              inputMode="url"
+              autoCapitalize="none"
+              value={details.reseau_social}
+              onChange={(e) => set('reseau_social', e.target.value)}
+              placeholder="Réseau social : Instagram, Facebook… (facultatif)"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 text-base"
+            />
+
+            <p className="pt-2 text-sm font-semibold text-slate-600">🚚 Adresse de livraison</p>
+            {adresseCommerce && details.adresse_livraison !== adresseCommerce && (
+              <button
+                type="button"
+                onClick={() => set('adresse_livraison', adresseCommerce)}
+                className="min-h-11 rounded-xl border-2 border-slate-200 px-4 text-sm font-medium text-slate-700"
+              >
+                📍 Même adresse que le commerce
+              </button>
+            )}
+            <textarea
+              value={details.adresse_livraison}
+              onChange={(e) => set('adresse_livraison', e.target.value)}
+              rows={2}
+              placeholder="Rue, numéro, code postal, commune"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 text-base"
+            />
+
+            <p className="pt-2 text-sm font-semibold text-slate-600">🧾 Facturation</p>
+            {details.adresse_livraison && details.adresse_facturation !== details.adresse_livraison && (
+              <button
+                type="button"
+                onClick={() => set('adresse_facturation', details.adresse_livraison)}
+                className="min-h-11 rounded-xl border-2 border-slate-200 px-4 text-sm font-medium text-slate-700"
+              >
+                Même adresse que la livraison
+              </button>
+            )}
+            <textarea
+              value={details.adresse_facturation}
+              onChange={(e) => set('adresse_facturation', e.target.value)}
+              rows={2}
+              placeholder="Adresse de facturation (société, rue, numéro, code postal, commune)"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 text-base"
+            />
+            <input
+              value={details.numero_tva}
+              onChange={(e) => set('numero_tva', e.target.value.toUpperCase())}
+              autoCapitalize="characters"
+              autoComplete="off"
+              placeholder="N° de TVA (ex. BE0123.456.789)"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 text-base"
+            />
           </div>
         )}
       </Section>

@@ -4,7 +4,7 @@ import { MapContainer, TileLayer, CircleMarker, Circle, Popup, Polyline } from '
 import 'leaflet/dist/leaflet.css'
 import { supabase } from '../../lib/supabase'
 import type { VisiteAvecRelations } from '../../types/database'
-import { BADGE_RESULTAT, LABEL_RESULTAT, LABEL_STATUT, LABEL_TYPE } from '../../lib/visites'
+import { BADGE_RESULTAT, LABEL_RESULTAT, LABEL_STATUT, LABEL_TYPE, lienReseau } from '../../lib/visites'
 import { SELECT_VISITE, duree, heure, liensPhotos, lienCarte, lienDrive } from '../../lib/visitesAdmin'
 import { appelServeur, demanderArchivageDrive } from '../../lib/visitesQueue'
 import ChampsVisite, { DETAILS_VIDES, type DetailsVisite } from '../../components/visites/ChampsVisite'
@@ -62,6 +62,10 @@ export default function AdminVisiteFichePage() {
       contact_fonction: v.contact_fonction ?? '',
       contact_telephone: v.contact_telephone ?? '',
       contact_email: v.contact_email ?? '',
+      adresse_livraison: v.adresse_livraison ?? '',
+      adresse_facturation: v.adresse_facturation ?? '',
+      numero_tva: v.numero_tva ?? '',
+      reseau_social: v.reseau_social ?? '',
     })
   }
 
@@ -87,6 +91,10 @@ export default function AdminVisiteFichePage() {
         contact_fonction: d.contact_fonction || null,
         contact_telephone: d.contact_telephone.trim() || null,
         contact_email: d.contact_email.trim() || null,
+        adresse_livraison: d.adresse_livraison.trim() || null,
+        adresse_facturation: d.adresse_facturation.trim() || null,
+        numero_tva: d.numero_tva.trim() || null,
+        reseau_social: d.reseau_social.trim() || null,
         a_completer: false,
         // Le rapport Drive sera refait avec les nouvelles infos.
         drive_archive_at: null,
@@ -246,6 +254,16 @@ export default function AdminVisiteFichePage() {
             <Ligne label="E-mail">
               {v.contact_email && <a href={`mailto:${v.contact_email}`}>{v.contact_email}</a>}
             </Ligne>
+            <Ligne label="Réseau social">
+              {v.reseau_social && (
+                <a href={lienReseau(v.reseau_social)} target="_blank" rel="noreferrer">
+                  {v.reseau_social}
+                </a>
+              )}
+            </Ligne>
+            <Ligne label="Adresse de livraison">{v.adresse_livraison}</Ligne>
+            <Ligne label="Adresse de facturation">{v.adresse_facturation}</Ligne>
+            <Ligne label="N° de TVA">{v.numero_tva}</Ligne>
             {v.remarques?.length > 0 && <Ligne label="Remarques">{v.remarques.join(' · ')}</Ligne>}
             <Ligne label="Commentaire">{v.commentaire}</Ligne>
             {v.a_completer && <Ligne label="État">À compléter par la commerciale</Ligne>}

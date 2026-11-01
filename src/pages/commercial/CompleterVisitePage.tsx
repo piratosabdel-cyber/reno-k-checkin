@@ -5,7 +5,7 @@ import { appelServeur, demanderArchivageDrive } from '../../lib/visitesQueue'
 import { TYPES_COMMERCE } from '../../lib/visites'
 import type { TypeCommerce, Visite } from '../../types/database'
 import AdalaHeader from '../../components/visites/AdalaHeader'
-import ChampsVisite, { DETAILS_VIDES, Puce, Section, type DetailsVisite } from '../../components/visites/ChampsVisite'
+import ChampsVisite, { DETAILS_VIDES, Puce, Section, adresseComplete, type DetailsVisite } from '../../components/visites/ChampsVisite'
 
 const DELAI_MODIFICATION_MS = 7 * 24 * 3600000
 
@@ -65,6 +65,10 @@ export default function CompleterVisitePage() {
           contact_fonction: v.contact_fonction ?? '',
           contact_telephone: v.contact_telephone ?? '',
           contact_email: v.contact_email ?? '',
+          adresse_livraison: v.adresse_livraison ?? '',
+          adresse_facturation: v.adresse_facturation ?? '',
+          numero_tva: v.numero_tva ?? '',
+          reseau_social: v.reseau_social ?? '',
         })
         const { data: lien } = await supabase.storage.from('visites-photos').createSignedUrl(v.photo_path, 3600)
         setPhoto(lien?.signedUrl ?? null)
@@ -108,6 +112,10 @@ export default function CompleterVisitePage() {
         contact_fonction: d.contact_fonction || null,
         contact_telephone: d.contact_telephone.trim() || null,
         contact_email: d.contact_email.trim() || null,
+        adresse_livraison: d.adresse_livraison.trim() || null,
+        adresse_facturation: d.adresse_facturation.trim() || null,
+        numero_tva: d.numero_tva.trim() || null,
+        reseau_social: d.reseau_social.trim() || null,
         a_completer: false,
       })
       .eq('id', id!)
@@ -205,7 +213,12 @@ export default function CompleterVisitePage() {
                 ))}
               </div>
             </Section>
-            <ChampsVisite details={details} onChange={setDetails} contactConnu={!!details.contact_nom} />
+            <ChampsVisite
+              details={details}
+              onChange={setDetails}
+              contactConnu={!!details.contact_nom}
+              adresseCommerce={adresseComplete(visite!.commerce)}
+            />
             <button
               onClick={effacer}
               disabled={envoi}

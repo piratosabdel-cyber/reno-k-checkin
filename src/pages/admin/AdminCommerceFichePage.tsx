@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import type { Commerce, StatutCommerce, TypeCommerce, VisiteAvecRelations } from '../../types/database'
-import { BADGE_RESULTAT, LABEL_RESULTAT, LABEL_STATUT, LABEL_TYPE, TYPES_COMMERCE } from '../../lib/visites'
+import { BADGE_RESULTAT, LABEL_RESULTAT, LABEL_STATUT, LABEL_TYPE, TYPES_COMMERCE, lienReseau } from '../../lib/visites'
 import { SELECT_VISITE, dateCourte, heure, liensPhotos, lienCarte, lienDrive } from '../../lib/visitesAdmin'
 import VisitesMap from '../../components/visites/VisitesMap'
 
@@ -44,6 +44,10 @@ export default function AdminCommerceFichePage() {
         contact_fonction: edition.contact_fonction,
         contact_telephone: edition.contact_telephone,
         contact_email: edition.contact_email,
+        reseau_social: edition.reseau_social,
+        adresse_livraison: edition.adresse_livraison,
+        adresse_facturation: edition.adresse_facturation,
+        numero_tva: edition.numero_tva,
         updated_at: new Date().toISOString(),
       })
       .eq('id', edition.id)
@@ -128,6 +132,10 @@ export default function AdminCommerceFichePage() {
           <input className={champ} value={edition.contact_fonction ?? ''} onChange={(e) => setEdition({ ...edition, contact_fonction: e.target.value || null })} placeholder="Fonction" />
           <input className={champ} value={edition.contact_telephone ?? ''} onChange={(e) => setEdition({ ...edition, contact_telephone: e.target.value || null })} placeholder="Téléphone" />
           <input className={champ} value={edition.contact_email ?? ''} onChange={(e) => setEdition({ ...edition, contact_email: e.target.value || null })} placeholder="E-mail" />
+          <input className={champ} value={edition.reseau_social ?? ''} onChange={(e) => setEdition({ ...edition, reseau_social: e.target.value || null })} placeholder="Réseau social (lien)" />
+          <input className={champ} value={edition.numero_tva ?? ''} onChange={(e) => setEdition({ ...edition, numero_tva: e.target.value || null })} placeholder="N° de TVA" />
+          <input className={champ} value={edition.adresse_livraison ?? ''} onChange={(e) => setEdition({ ...edition, adresse_livraison: e.target.value || null })} placeholder="Adresse de livraison" />
+          <input className={champ} value={edition.adresse_facturation ?? ''} onChange={(e) => setEdition({ ...edition, adresse_facturation: e.target.value || null })} placeholder="Adresse de facturation" />
           {erreur && <p className="text-sm text-red-600 sm:col-span-2">{erreur}</p>}
           <button className="rounded-lg bg-orange-600 px-4 py-2 font-semibold text-white sm:col-span-2">Enregistrer</button>
         </form>
@@ -153,7 +161,7 @@ export default function AdminCommerceFichePage() {
       </div>
 
       <section className="rounded-xl bg-white p-4 shadow-sm text-sm">
-        <h2 className="mb-2 font-semibold text-slate-900">Contact principal</h2>
+        <h2 className="mb-2 font-semibold text-slate-900">Contact client</h2>
         <p>
           {[c.contact_nom, c.contact_fonction].filter(Boolean).join(' · ') || '—'}
           {c.contact_telephone && (
@@ -173,6 +181,17 @@ export default function AdminCommerceFichePage() {
             </>
           )}
         </p>
+        {c.reseau_social && (
+          <p className="mt-1">
+            Réseau social :{' '}
+            <a href={lienReseau(c.reseau_social)} target="_blank" rel="noreferrer" className="text-orange-700">
+              {c.reseau_social}
+            </a>
+          </p>
+        )}
+        {c.adresse_livraison && <p className="mt-1">Livraison : {c.adresse_livraison}</p>}
+        {c.adresse_facturation && <p className="mt-1">Facturation : {c.adresse_facturation}</p>}
+        {c.numero_tva && <p className="mt-1">TVA : {c.numero_tva}</p>}
       </section>
 
       <section className="space-y-3">

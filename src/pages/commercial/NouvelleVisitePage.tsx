@@ -15,7 +15,7 @@ import { DISTANCE_RECONNAISSANCE_M, LABEL_TYPE, TYPES_COMMERCE } from '../../lib
 import type { Commerce, TypeCommerce } from '../../types/database'
 import AdalaHeader from '../../components/visites/AdalaHeader'
 import CameraCapture from '../../components/visites/CameraCapture'
-import ChampsVisite, { DETAILS_VIDES, Puce, Section, type DetailsVisite } from '../../components/visites/ChampsVisite'
+import ChampsVisite, { DETAILS_VIDES, INFOS_CLIENT_VIDES, adresseComplete, Puce, Section, type DetailsVisite } from '../../components/visites/ChampsVisite'
 
 function normaliser(s: string) {
   return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()
@@ -114,6 +114,10 @@ export default function NouvelleVisitePage() {
       contact_fonction: c.contact_fonction ?? '',
       contact_telephone: c.contact_telephone ?? '',
       contact_email: c.contact_email ?? '',
+      adresse_livraison: c.adresse_livraison ?? '',
+      adresse_facturation: c.adresse_facturation ?? '',
+      numero_tva: c.numero_tva ?? '',
+      reseau_social: c.reseau_social ?? '',
     }))
   }
 
@@ -126,7 +130,7 @@ export default function NouvelleVisitePage() {
       commune: adresseGps?.commune ?? null,
       type: 'epicerie',
     })
-    setDetails((d) => ({ ...d, contact_nom: '', contact_fonction: '', contact_telephone: '', contact_email: '' }))
+    setDetails((d) => ({ ...d, ...INFOS_CLIENT_VIDES }))
   }
 
   // L'adresse GPS arrive parfois après le choix « nouveau commerce ».
@@ -190,6 +194,10 @@ export default function NouvelleVisitePage() {
       contact_fonction: d.contact_fonction || null,
       contact_telephone: d.contact_telephone.trim() || null,
       contact_email: d.contact_email.trim() || null,
+      adresse_livraison: d.adresse_livraison.trim() || null,
+      adresse_facturation: d.adresse_facturation.trim() || null,
+      numero_tva: d.numero_tva.trim() || null,
+      reseau_social: d.reseau_social.trim() || null,
       resultat: d.resultat!,
       plateaux: d.resultat === 'precommande' ? d.plateaux : null,
       palettes: d.resultat === 'precommande' ? d.palettes : null,
@@ -406,6 +414,7 @@ export default function NouvelleVisitePage() {
           details={details}
           onChange={setDetails}
           contactConnu={!!commerce?.contact_nom}
+          adresseCommerce={adresseComplete(commerce ?? nouveau)}
         />
       </main>
 

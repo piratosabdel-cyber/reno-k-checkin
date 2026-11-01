@@ -20,7 +20,7 @@ La position est lue **uniquement** au moment où tu ouvres et enregistres une vi
    - pour un nouveau commerce, appuie sur **+ Nouveau commerce** : l'adresse est proposée toute seule, il reste à choisir le type.
 3. **📷 Prendre la photo** : la vitrine, le rayon ou le frigo.
 4. **Résultat** : un seul choix. Pour une précommande, choisis **Plateaux de 24** ou **Palettes**, puis la quantité avec **−** / **+** (ou 1, 2, 5, 10).
-5. **Relance**, **remarques** et **contact** : touche les boutons. Pour dicter un commentaire, utilise le 🎤 du clavier. Le contact d'un commerce déjà connu est déjà rempli.
+5. **Relance**, **remarques** et **contact client** : touche les boutons. Pour dicter un commentaire, utilise le 🎤 du clavier. Dans **Contact client**, tu peux aussi noter le lien réseau social, l'**adresse de livraison** (bouton « Même adresse que le commerce »), l'**adresse de facturation** et le **n° de TVA**. Pour un commerce déjà connu, tout est déjà rempli.
 6. **Enregistrer la visite**.
 
 **Pas le temps ?** Prends juste la photo, choisis le résultat, puis appuie sur **« Enregistrer et compléter plus tard »**. La visite apparaît en haut de l'écran d'accueil dans **À compléter**.

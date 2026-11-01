@@ -73,6 +73,14 @@ export const LABEL_ALERTE: Record<string, string> = {
 
 export const DISTANCE_RECONNAISSANCE_M = 150
 
+/** « instagram.com/x » ou « @x » tapé à la main → lien cliquable. */
+export function lienReseau(texte: string): string {
+  const t = texte.trim()
+  if (/^https?:\/\//i.test(t)) return t
+  if (t.startsWith('@')) return `https://www.instagram.com/${t.slice(1)}`
+  return `https://${t}`
+}
+
 export function dansNJours(n: number): string {
   const d = new Date()
   d.setDate(d.getDate() + n)

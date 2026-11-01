@@ -101,6 +101,10 @@ export interface Commerce {
   contact_fonction: string | null
   contact_telephone: string | null
   contact_email: string | null
+  adresse_livraison: string | null
+  adresse_facturation: string | null
+  numero_tva: string | null
+  reseau_social: string | null
   statut: StatutCommerce
   cree_par: string | null
   drive_dossier_id: string | null
@@ -118,6 +122,10 @@ export interface Visite {
   contact_fonction: string | null
   contact_telephone: string | null
   contact_email: string | null
+  adresse_livraison: string | null
+  adresse_facturation: string | null
+  numero_tva: string | null
+  reseau_social: string | null
   resultat: ResultatVisite
   plateaux: number | null
   palettes: number | null

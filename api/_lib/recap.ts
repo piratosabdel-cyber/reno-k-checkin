@@ -124,6 +124,10 @@ interface LigneListe {
   contact_fonction: string | null
   contact_telephone: string | null
   contact_email: string | null
+  reseau_social: string | null
+  adresse_livraison: string | null
+  adresse_facturation: string | null
+  numero_tva: string | null
   type_commerce: string | null
   drive_dossier_id: string | null
   commerce: { nom: string; adresse: string | null; commune: string | null; type: string } | null
@@ -143,7 +147,7 @@ export async function envoyerListe(
   let requete = db
     .from('visites')
     .select(
-      'id, resultat, plateaux, palettes, heure_serveur, date_relance, remarques, commentaire, contact_nom, contact_fonction, contact_telephone, contact_email, type_commerce, drive_dossier_id, commerce:commerces(nom, adresse, commune, type), commercial:profiles(full_name)'
+      'id, resultat, plateaux, palettes, heure_serveur, date_relance, remarques, commentaire, contact_nom, contact_fonction, contact_telephone, contact_email, reseau_social, adresse_livraison, adresse_facturation, numero_tva, type_commerce, drive_dossier_id, commerce:commerces(nom, adresse, commune, type), commercial:profiles(full_name)'
     )
     .in('id', ids)
   if (commercialId) requete = requete.eq('commercial_id', commercialId)
@@ -163,7 +167,11 @@ export async function envoyerListe(
       )}<br>${echapper(LABEL_TYPE[v.type_commerce ?? v.commerce?.type ?? 'autre'])}</span></td>
 <td ${td}>${echapper([v.contact_nom, v.contact_fonction].filter(Boolean).join(' · '))}${
         v.contact_telephone ? `<br>${echapper(v.contact_telephone)}` : ''
-      }${v.contact_email ? `<br>${echapper(v.contact_email)}` : ''}</td>
+      }${v.contact_email ? `<br>${echapper(v.contact_email)}` : ''}${v.reseau_social ? `<br>${echapper(v.reseau_social)}` : ''}${
+        v.adresse_livraison ? `<br><b>Livraison :</b> ${echapper(v.adresse_livraison)}` : ''
+      }${v.adresse_facturation ? `<br><b>Facturation :</b> ${echapper(v.adresse_facturation)}` : ''}${
+        v.numero_tva ? `<br><b>TVA :</b> ${echapper(v.numero_tva)}` : ''
+      }</td>
 <td ${td}>${echapper(LABEL_RESULTAT[v.resultat])}${
         v.resultat === 'precommande' ? `<br><b>${v.plateaux ?? 0} plat. de 24 · ${v.palettes ?? 0} pal.</b>` : ''
       }</td>
@@ -182,7 +190,7 @@ export async function envoyerListe(
     plateaux || palettes ? ` · total précommandé : ${plateaux} plateau(x) de 24, ${palettes} palette(s)` : ''
   }</p>
 <table style="border-collapse:collapse;width:100%"><tr style="background:#f3f4f6">
-<th ${td}>#</th><th ${td}>Date</th><th ${td}>Commerce</th><th ${td}>Contact</th><th ${td}>Résultat</th><th ${td}>Relance</th><th ${td}>Remarques</th><th ${td}>Dossier</th></tr>${lignes}</table>
+<th ${td}>#</th><th ${td}>Date</th><th ${td}>Commerce</th><th ${td}>Contact client</th><th ${td}>Résultat</th><th ${td}>Relance</th><th ${td}>Remarques</th><th ${td}>Dossier</th></tr>${lignes}</table>
 </div>`
 
   await envoyerMail(`${titre} — ${visites.length} visite(s)`, html)
