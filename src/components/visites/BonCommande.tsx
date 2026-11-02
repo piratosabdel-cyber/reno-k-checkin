@@ -255,6 +255,13 @@ export default function BonCommande({
           <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
             {t('Bon pour commande — signature du client', 'Voor akkoord — handtekening klant')}
           </p>
+          <p className="text-sm text-slate-600">
+            {t('En signant, le client accepte les ', 'Door te tekenen aanvaardt de klant de ')}
+            <a href="/adala/CGV_Adala_Drinks_Europe_FR_NL.pdf" target="_blank" rel="noreferrer" className="font-semibold text-[#b83a2c] underline">
+              {t('conditions générales de vente', 'algemene verkoopsvoorwaarden')}
+            </a>
+            {t(', jointes au bon de commande.', ', gevoegd bij de bestelbon.')}
+          </p>
           <input
             value={signataire}
             onChange={(e) => setSignataire(e.target.value)}
@@ -341,8 +348,8 @@ export function EnvoiBonClient({
 
   const message = bon
     ? t(
-        `Bonjour, voici le bon de commande Adala Cola ${bon.numero} pour ${commerce}.\nMerci de le signer et de nous renvoyer une copie signée ici ou à order@adalacola.com.`,
-        `Goeiedag, hierbij de bestelbon van Adala Cola ${bon.numero} voor ${commerce}.\nGelieve hem te ondertekenen en een getekende kopie terug te sturen hier of naar order@adalacola.com.`
+        `Bonjour, voici le bon de commande Adala Cola ${bon.numero} pour ${commerce}, avec nos conditions générales de vente.\nMerci de le signer et de nous renvoyer une copie signée ici ou à order@adalacola.com.`,
+        `Goeiedag, hierbij de bestelbon van Adala Cola ${bon.numero} voor ${commerce}, met onze algemene verkoopsvoorwaarden.\nGelieve hem te ondertekenen en een getekende kopie terug te sturen hier of naar order@adalacola.com.`
       )
     : ''
   // WhatsApp n'affiche pas de texte cliquable : un lien court, seul sur sa ligne.

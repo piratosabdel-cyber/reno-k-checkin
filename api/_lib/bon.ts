@@ -12,10 +12,13 @@ const ADALA = {
   lignes: [
     'Z.5 Mollem 44',
     '1730 Asse, Belgique',
-    process.env.ADALA_NUMERO_ENTREPRISE ? `N° d'entreprise : ${process.env.ADALA_NUMERO_ENTREPRISE}` : 'RPM Bruxelles (néerlandophone)',
+    process.env.ADALA_NUMERO_ENTREPRISE ? `N° d'entreprise : ${process.env.ADALA_NUMERO_ENTREPRISE}` : 'TVA / btw BE 1043.549.556',
     'order@adalacola.com',
   ],
 }
+
+// Conditions générales de vente (FR + NL), ajoutées à la suite de chaque bon.
+const CGV = 'CGV_Adala_Drinks_Europe_FR_NL.pdf'
 
 const ROUGE = rgb(0.72, 0.23, 0.17)
 const GRIS = rgb(0.42, 0.45, 0.5)
@@ -70,8 +73,9 @@ function quantitesTexte(v: VisiteBon) {
   return `${produits} = ${euros(totalCommande(v.plateaux ?? 0, v.palettes ?? 0).tvac)} TVAC`
 }
 
-function logoAdala() {
-  return fetch(`${URL_APP}/adala/icon-192.png`)
+/** Fichier du dossier public/adala de l'app (logo, conditions générales). */
+function fichierAdala(nom: string) {
+  return fetch(`${URL_APP}/adala/${nom}`)
     .then((r) => (r.ok ? r.arrayBuffer() : null))
     .then((b) => (b ? new Uint8Array(b) : null))
     .catch(() => null)
@@ -112,7 +116,12 @@ function couper(texte: string, police: PDFFont, taille: number, largeur: number)
   return lignes
 }
 
-export async function genererPdf(v: VisiteBon, signature: Uint8Array | null, logo: Uint8Array | null): Promise<Uint8Array> {
+export async function genererPdf(
+  v: VisiteBon,
+  signature: Uint8Array | null,
+  logo: Uint8Array | null,
+  cgv: Uint8Array | null = null
+): Promise<Uint8Array> {
   const pdf = await PDFDocument.create()
   pdf.setTitle(`Bon de commande ${numeroBon(v)}`)
   pdf.setAuthor(ADALA.nom)
@@ -245,6 +254,18 @@ export async function genererPdf(v: VisiteBon, signature: Uint8Array | null, log
 
   // Signature
   texte('BON POUR COMMANDE / VOOR AKKOORD', M, y, 9, gras, GRIS)
+  if (cgv) {
+    y = bloc(
+      [
+        'Le client accepte les conditions générales de vente jointes (pages suivantes).',
+        'De klant aanvaardt de bijgevoegde algemene verkoopsvoorwaarden (volgende pagina’s).',
+      ],
+      M,
+      y - 13,
+      L,
+      9
+    ) + 6
+  }
   y -= 8
   page.drawRectangle({ x: M, y: y - 110, width: 260, height: 110, borderColor: rgb(0.8, 0.82, 0.85), borderWidth: 1 })
   if (signature) {
@@ -279,6 +300,10 @@ export async function genererPdf(v: VisiteBon, signature: Uint8Array | null, log
     normal,
     GRIS
   )
+  if (cgv) {
+    const conditions = await PDFDocument.load(cgv)
+    for (const p of await pdf.copyPages(conditions, conditions.getPageIndices())) pdf.addPage(p)
+  }
   return pdf.save()
 }
 
@@ -297,7 +322,7 @@ export async function envoyerBon(db: SupabaseClient, filtre: { id?: string; clie
       const { data: fichier } = await db.storage.from('visites-photos').download(v.bon_signature_path)
       if (fichier) signature = new Uint8Array(await fichier.arrayBuffer())
     }
-    const pdf = await genererPdf(v, signature, await logoAdala())
+    const pdf = await genererPdf(v, signature, await fichierAdala('icon-192.png'), await fichierAdala(CGV))
     const numero = numeroBon(v)
     // Chaque version garde son PDF : le bon d'origine reste consultable.
     const chemin = `${v.commercial_id}/${v.client_uuid}-bon${v.bon_version > 1 ? `-v${v.bon_version}` : ''}.pdf`
@@ -332,7 +357,7 @@ export async function preparerBonClient(db: SupabaseClient, id: string, commerci
   const v = await chargerVisite(db, { id }, commercialId)
   if (v.bon_signe_le) throw new Error('Ce bon est déjà signé.')
   if (!(v.plateaux || v.palettes)) throw new Error('Aucune quantité commandée.')
-  const pdf = await genererPdf(v, null, await logoAdala())
+  const pdf = await genererPdf(v, null, await fichierAdala('icon-192.png'), await fichierAdala(CGV))
   const numero = numeroBon(v)
   const chemin = `${v.commercial_id}/${v.client_uuid}-bon-a-signer-v${v.bon_version}.pdf`
   const { error } = await db.storage.from('visites-photos').upload(chemin, pdf, { contentType: 'application/pdf', upsert: true })
@@ -366,10 +391,11 @@ export async function envoyerBonClient(
       `Adala Cola — bon de commande ${modifie ? 'modifié ' : ''}${numero} à signer / te ondertekenen`,
       `<p>Bonjour,</p>
 <p>Voici le bon de commande Adala Cola${modifie ? ' <b>modifié</b>' : ''} pour <b>${echapper(v.commerce?.nom)}</b> : ${echapper(quantites)}.</p>
+<p>Nos conditions générales de vente se trouvent à la suite du bon, dans le même PDF.</p>
 <p>Merci de le signer et de nous renvoyer une copie signée par WhatsApp ou en réponse à cet e-mail (order@adalacola.com).</p>
 <hr>
 <p>Goeiedag,</p>
-<p>Hierbij de${modifie ? ' <b>gewijzigde</b>' : ''} bestelbon van Adala Cola voor <b>${echapper(v.commerce?.nom)}</b>. Gelieve hem te ondertekenen en een getekende kopie terug te sturen via WhatsApp of als antwoord op deze e-mail (order@adalacola.com).</p>
+<p>Hierbij de${modifie ? ' <b>gewijzigde</b>' : ''} bestelbon van Adala Cola voor <b>${echapper(v.commerce?.nom)}</b>. Onze algemene verkoopsvoorwaarden staan na de bon, in dezelfde pdf. Gelieve hem te ondertekenen en een getekende kopie terug te sturen via WhatsApp of als antwoord op deze e-mail (order@adalacola.com).</p>
 <p>Adala Drinks Europe — ${echapper(v.commercial?.full_name)}</p>`,
       piece,
       { a: email, copie: 'order@adalacola.com', repondreA: 'order@adalacola.com' }
