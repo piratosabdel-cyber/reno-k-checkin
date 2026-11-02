@@ -3,7 +3,7 @@ import { randomBytes } from 'node:crypto'
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from 'pdf-lib'
 import { envoyerMail } from './recap.js'
 import { echapper, URL_APP } from './serveur.js'
-import { LABEL_TYPE, dateBxl, heureBxl } from './textes.js'
+import { dateBxl, heureBxl } from './textes.js'
 
 /** Société qui vend en Belgique (mentions légales du site adalacola.com). */
 const ADALA = {
@@ -207,15 +207,8 @@ export async function genererPdf(v: VisiteBon, signature: Uint8Array | null, log
     texte('REMARQUES / OPMERKINGEN', M, y, 9, gras, GRIS)
     y = bloc([notes], M, y - 15, L) - 8
   }
-  texte(
-    `Commercial(e) : ${v.commercial?.full_name ?? '—'}  ·  Type : ${LABEL_TYPE[v.type_commerce ?? c?.type ?? 'autre'] ?? ''}`,
-    M,
-    y,
-    9,
-    normal,
-    GRIS
-  )
-  y -= 34
+  // Ni commercial(e) ni type de commerce sur le bon : il part chez le client.
+  y -= 22
 
   // Signature
   texte('BON POUR COMMANDE / VOOR AKKOORD', M, y, 9, gras, GRIS)
