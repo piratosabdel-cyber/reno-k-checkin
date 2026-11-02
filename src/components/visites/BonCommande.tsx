@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLangue } from '../../lib/langue'
+import { appelServeur } from '../../lib/visitesQueue'
 
 export interface BonSigne {
   signature: Blob
@@ -257,6 +258,168 @@ export default function BonCommande({
             </button>
           </div>
         </div>
+      </div>
+    </div>
+  )
+}
+
+/** Numéro belge « 0470 12 34 56 » → « 32470123456 » pour wa.me. */
+function numeroWhatsapp(tel: string) {
+  let n = tel.replace(/\D/g, '')
+  if (n.startsWith('00')) n = n.slice(2)
+  else if (n.startsWith('0')) n = `32${n.slice(1)}`
+  return n
+}
+
+/**
+ * Client absent : le bon à signer part chez lui par WhatsApp, e-mail ou le
+ * partage de la tablette. Il le renvoie signé à order@ ou par WhatsApp.
+ */
+export function EnvoiBonClient({
+  visiteId,
+  commerce,
+  telephone,
+  email,
+  onEnvoye,
+  onFermer,
+}: {
+  visiteId: string
+  commerce: string
+  telephone: string
+  email: string
+  onEnvoye: (message: string) => void
+  onFermer: () => void
+}) {
+  const { t } = useLangue()
+  const [bon, setBon] = useState<{ numero: string; url: string | null } | null>(null)
+  const [fichier, setFichier] = useState<File | null>(null)
+  const [adresse, setAdresse] = useState(email)
+  const [envoi, setEnvoi] = useState(false)
+  const [erreur, setErreur] = useState<string | null>(null)
+
+  useEffect(() => {
+    appelServeur<{ numero: string; url: string | null }>('/api/bon-client', { id: visiteId, action: 'preparer' }).then(
+      async (r) => {
+        if (r.erreur || !r.reponse) {
+          setErreur(r.erreur ?? t('Bon non préparé.', 'Bestelbon niet klaar.'))
+          return
+        }
+        setBon(r.reponse)
+        // Le PDF est chargé d'avance : le partage doit partir au toucher.
+        if (r.reponse.url && 'canShare' in navigator) {
+          const blob = await fetch(r.reponse.url).then((x) => (x.ok ? x.blob() : null)).catch(() => null)
+          const f = blob && new File([blob], `${r.reponse.numero}.pdf`, { type: 'application/pdf' })
+          if (f && navigator.canShare({ files: [f] })) setFichier(f)
+        }
+      }
+    )
+  }, [visiteId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const message = bon
+    ? t(
+        `Bonjour, voici le bon de commande Adala Cola ${bon.numero} pour ${commerce}. Merci de le signer et de nous renvoyer une copie signée ici ou à order@adalacola.com.`,
+        `Goeiedag, hierbij de bestelbon van Adala Cola ${bon.numero} voor ${commerce}. Gelieve hem te ondertekenen en een getekende kopie terug te sturen hier of naar order@adalacola.com.`
+      )
+    : ''
+
+  async function noter(canal: 'whatsapp' | 'email' | 'partage') {
+    setEnvoi(true)
+    setErreur(null)
+    const r = await appelServeur('/api/bon-client', { id: visiteId, canal, email: adresse })
+    setEnvoi(false)
+    if (r.erreur) setErreur(r.erreur)
+    return !r.erreur
+  }
+
+  async function whatsapp() {
+    if (!bon) return
+    if (!(await noter('whatsapp'))) return
+    const numero = numeroWhatsapp(telephone)
+    window.location.href = `https://wa.me/${numero}?text=${encodeURIComponent(`${message}\n${bon.url ?? ''}`)}`
+    onEnvoye(t('Bon envoyé au client par WhatsApp. En attente de la copie signée.', 'Bestelbon via WhatsApp naar de klant. Wachten op de getekende kopie.'))
+  }
+
+  async function mail() {
+    if (!(await noter('email'))) return
+    onEnvoye(t(`Bon envoyé par e-mail à ${adresse} (copie à order@).`, `Bestelbon per e-mail naar ${adresse} (kopie naar order@).`))
+  }
+
+  async function partager() {
+    if (!fichier) return
+    try {
+      await navigator.share({ files: [fichier], text: message })
+    } catch {
+      return
+    }
+    if (await noter('partage'))
+      onEnvoye(t('Bon partagé avec le client. En attente de la copie signée.', 'Bestelbon gedeeld met de klant. Wachten op de getekende kopie.'))
+  }
+
+  return (
+    <div className="fixed inset-0 z-[1000] flex items-end justify-center bg-black/40 sm:items-center">
+      <div className="w-full max-w-lg space-y-3 rounded-t-2xl bg-white p-5 sm:rounded-2xl">
+        <p className="text-lg font-bold text-slate-900">{t('Envoyer le bon au client', 'Bestelbon naar de klant sturen')}</p>
+        <p className="text-sm text-slate-500">
+          {t(
+            'Le client le signe et renvoie une copie signée par WhatsApp ou à order@adalacola.com.',
+            'De klant tekent en stuurt een getekende kopie terug via WhatsApp of naar order@adalacola.com.'
+          )}
+        </p>
+        {!bon && !erreur && <p className="py-4 text-center text-slate-400">{t('Préparation du bon…', 'Bestelbon wordt klaargemaakt…')}</p>}
+        {bon && (
+          <>
+            <p className="text-sm text-slate-700">
+              N° <strong>{bon.numero}</strong>
+              {bon.url && (
+                <>
+                  {' · '}
+                  <a href={bon.url} target="_blank" rel="noreferrer" className="font-semibold text-[#b83a2c] underline">
+                    {t('Voir le PDF', 'PDF bekijken')}
+                  </a>
+                </>
+              )}
+            </p>
+            <button
+              type="button"
+              disabled={envoi}
+              onClick={whatsapp}
+              className="min-h-14 w-full rounded-xl bg-[#25D366] text-lg font-bold text-white disabled:opacity-50"
+            >
+              WhatsApp{telephone ? ` · ${telephone}` : ''}
+            </button>
+            <div className="flex gap-2">
+              <input
+                type="email"
+                value={adresse}
+                onChange={(e) => setAdresse(e.target.value)}
+                placeholder={t('E-mail du client', 'E-mail van de klant')}
+                className="min-w-0 flex-1 rounded-xl border border-slate-300 px-3 text-base"
+              />
+              <button
+                type="button"
+                disabled={envoi || !adresse.trim()}
+                onClick={mail}
+                className="min-h-14 shrink-0 rounded-xl bg-slate-800 px-4 font-bold text-white disabled:opacity-50"
+              >
+                ✉ {t('E-mail', 'E-mail')}
+              </button>
+            </div>
+            {fichier && (
+              <button
+                type="button"
+                disabled={envoi}
+                onClick={partager}
+                className="min-h-12 w-full rounded-xl border-2 border-slate-300 font-semibold text-slate-700 disabled:opacity-50"
+              >
+                📤 {t('Partager le PDF (autre appli)', 'PDF delen (andere app)')}
+              </button>
+            )}
+          </>
+        )}
+        {erreur && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{erreur}</p>}
+        <button type="button" onClick={onFermer} className="min-h-12 w-full font-semibold text-slate-500">
+          {t('Fermer', 'Sluiten')}
+        </button>
       </div>
     </div>
   )

@@ -26,7 +26,11 @@ La position est lue **uniquement** au moment où tu ouvres et enregistres une vi
 
 **Pas le temps ?** Choisis juste le commerce et le résultat, puis appuie sur **« Enregistrer et compléter plus tard »**. La visite apparaît en haut de l'écran d'accueil dans **À compléter**.
 
-**Un oubli ?** Sur l'écran d'accueil, touche la visite (✎) : tu revois la photo et l'adresse, et tu peux tout corriger (nom et type du commerce, résultat, quantités, contact, relance, commentaire) ou **effacer** la visite. C'est possible pendant **7 jours**. La photo, l'adresse, l'heure et la position GPS ne changent pas.
+**Un oubli ?** Sur l'écran d'accueil, touche la visite (✎) : tu peux tout corriger pendant **7 jours** : nom, adresse et type du commerce, photo (ajouter ou changer), résultat, commande, contact, relance, commentaire, ou **effacer** la visite. Seules l'heure et la position GPS ne changent pas : elles prouvent la visite.
+
+**Quantités changées après signature ?** Le bon signé n'est plus valable : l'app le signale. Deux possibilités :
+- **le client est là** : **« ✍ Faire signer le bon de commande »**, il signe à nouveau sur la tablette, puis **Enregistrer**. Le nouveau bon (N° …-V2) part aussitôt à order@ ;
+- **le client n'est pas là** : **« 📤 Client absent : envoyer le bon à signer »**, puis **WhatsApp** (au numéro du contact) ou **E-mail**. Le client signe et renvoie une copie signée par WhatsApp ou à order@adalacola.com. order@ reçoit aussi le bon envoyé. Tant que la copie n'est pas revenue, la visite affiche « En attente de la copie signée ».
 
 **Envoyer une liste à order@** : sur l'écran d'accueil, bouton **« ✉ Envoyer une liste à order@ »**. Choisis la période (aujourd'hui, semaine, 30 jours) et, si tu veux, un type de commerce. Coche des visites pour n'envoyer qu'elles, sinon toute la liste part.
 

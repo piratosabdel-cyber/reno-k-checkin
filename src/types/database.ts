@@ -155,6 +155,10 @@ export interface Visite {
   bon_pdf_path: string | null
   bon_envoye_le: string | null
   bon_erreur: string | null
+  bon_version: number
+  bon_client_envoye_le: string | null
+  bon_client_canal: string | null
+  bon_client_pdf_path: string | null
   appareil_id: string | null
   modele_appareil: string | null
   drive_dossier_id: string | null

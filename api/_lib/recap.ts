@@ -99,7 +99,8 @@ ${
 export async function envoyerMail(
   sujet: string,
   html: string,
-  pieces: { filename: string; content: Buffer; contentType: string }[] = []
+  pieces: { filename: string; content: Buffer; contentType: string }[] = [],
+  options: { a?: string; copie?: string; repondreA?: string } = {}
 ) {
   const transport = nodemailer.createTransport({
     host: process.env.SMTP_HOST ?? 'smtp-auth.mailprotect.be',
@@ -109,7 +110,9 @@ export async function envoyerMail(
   })
   await transport.sendMail({
     from: `"Adala Visites" <${env('SMTP_USER')}>`,
-    to: process.env.RECAP_DESTINATAIRE ?? 'order@adalacola.com',
+    to: options.a ?? process.env.RECAP_DESTINATAIRE ?? 'order@adalacola.com',
+    cc: options.copie,
+    replyTo: options.repondreA,
     subject: sujet,
     html,
     attachments: pieces,

@@ -307,6 +307,23 @@ export default function AdminVisiteFichePage() {
             </p>
           </div>
 
+          {(v.bon_signe_le || v.bon_client_envoye_le || v.bon_version > 1) && (
+            <section className="rounded-xl bg-white p-4 shadow-sm">
+              <h2 className="mb-2 font-semibold text-slate-900">Bon de commande</h2>
+              <Ligne label="Version">{v.bon_version > 1 ? `${v.bon_version} (quantités modifiées)` : '1'}</Ligne>
+              <Ligne label="État">
+                {v.bon_signe_le
+                  ? `Signé par ${v.bon_signataire ?? '—'} le ${new Date(v.bon_signe_le).toLocaleString('fr-BE', { dateStyle: 'short', timeStyle: 'short' })}`
+                  : v.bon_client_envoye_le
+                    ? `Envoyé au client (${v.bon_client_canal === 'email' ? 'e-mail' : v.bon_client_canal === 'whatsapp' ? 'WhatsApp' : 'partage'}) le ${new Date(v.bon_client_envoye_le).toLocaleString('fr-BE', { dateStyle: 'short', timeStyle: 'short' })}, en attente de la copie signée`
+                    : 'À faire signer'}
+              </Ligne>
+              <Ligne label="Envoyé à order@">
+                {v.bon_envoye_le ? new Date(v.bon_envoye_le).toLocaleString('fr-BE', { dateStyle: 'short', timeStyle: 'short' }) : '—'}
+              </Ligne>
+            </section>
+          )}
+
           <section className="rounded-xl bg-white p-4 shadow-sm">
             <h2 className="mb-2 font-semibold text-slate-900">Heures et position</h2>
             <Ligne label="Ouverture du formulaire (tablette)">{heure(v.heure_ouverture)}</Ligne>

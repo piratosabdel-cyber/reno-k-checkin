@@ -244,7 +244,10 @@ export async function synchroniserVisites(commercialId: string): Promise<{ envoy
 }
 
 /** Appel d'une fonction serveur avec la session en cours ; renvoie le message d'erreur éventuel. */
-export async function appelServeur(chemin: string, corps: unknown): Promise<{ erreur: string | null }> {
+export async function appelServeur<T = unknown>(
+  chemin: string,
+  corps: unknown
+): Promise<{ erreur: string | null; reponse?: T }> {
   const { data } = await supabase.auth.getSession()
   try {
     const res = await fetch(chemin, {
@@ -252,7 +255,7 @@ export async function appelServeur(chemin: string, corps: unknown): Promise<{ er
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${data.session?.access_token ?? ''}` },
       body: JSON.stringify(corps),
     })
-    if (res.ok) return { erreur: null }
+    if (res.ok) return { erreur: null, reponse: (await res.json().catch(() => undefined)) as T }
     const json = (await res.json().catch(() => ({}))) as { error?: string }
     return { erreur: json.error ?? `Erreur ${res.status}` }
   } catch {
