@@ -5,7 +5,9 @@ import { appelServeur, demanderArchivageDrive } from '../../lib/visitesQueue'
 import { TYPES_COMMERCE } from '../../lib/visites'
 import { useLangue } from '../../lib/langue'
 import type { TypeCommerce, Visite } from '../../types/database'
+import { useAuth } from '../../context/AuthContext'
 import AdalaHeader from '../../components/visites/AdalaHeader'
+import BonCommande, { CadreBon, type BonSigne } from '../../components/visites/BonCommande'
 import ChampsVisite, { DETAILS_VIDES, Puce, Section, adresseComplete, type DetailsVisite } from '../../components/visites/ChampsVisite'
 
 const DELAI_MODIFICATION_MS = 7 * 24 * 3600000
@@ -30,6 +32,9 @@ export default function CompleterVisitePage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { t, locale, labelType } = useLangue()
+  const { profile } = useAuth()
+  const [bon, setBon] = useState<BonSigne | null>(null)
+  const [bonOuvert, setBonOuvert] = useState(false)
   const [visite, setVisite] = useState<VisiteChargee | null>(null)
   const [photo, setPhoto] = useState<string | null>(null)
   const [nom, setNom] = useState('')
@@ -105,6 +110,23 @@ export default function CompleterVisitePage() {
     }
 
     const d = details
+    // Signature du bon : rangée avant la visite, comme la photo.
+    const nouveauBon =
+      bon && !visite.bon_signe_le && bon.plateaux === d.plateaux && bon.palettes === d.palettes && d.resultat === 'precommande'
+        ? bon
+        : null
+    let signaturePath: string | null = null
+    if (nouveauBon) {
+      signaturePath = `${visite.commercial_id}/${visite.client_uuid}-signature.png`
+      const { error: errSig } = await supabase.storage
+        .from('visites-photos')
+        .upload(signaturePath, nouveauBon.signature, { contentType: 'image/png', upsert: true })
+      if (errSig) {
+        setEnvoi(false)
+        setErreur(`${t('Signature non enregistrée', 'Handtekening niet opgeslagen')} (${errSig.message}).`)
+        return
+      }
+    }
     const { data: maj, error } = await supabase
       .from('visites')
       .update({
@@ -125,6 +147,9 @@ export default function CompleterVisitePage() {
         numero_tva: d.numero_tva.trim() || null,
         reseau_social: d.reseau_social.trim() || null,
         a_completer: false,
+        ...(nouveauBon
+          ? { bon_signature_path: signaturePath, bon_signataire: nouveauBon.signataire, bon_signe_le: nouveauBon.signe_le }
+          : {}),
       })
       .eq('id', id!)
       .select('id')
@@ -139,6 +164,7 @@ export default function CompleterVisitePage() {
       return
     }
     demanderArchivageDrive()
+    if (nouveauBon) await appelServeur('/api/bon-commande', { id: visite.id })
     navigate('/visites', {
       replace: true,
       state: {
@@ -235,6 +261,25 @@ export default function CompleterVisitePage() {
               contactConnu={!!details.contact_nom}
               adresseCommerce={adresseComplete(visite!.commerce)}
             />
+            <CadreBon
+              quantite={details.resultat === 'precommande' ? details.plateaux + details.palettes : 0}
+              bon={
+                visite!.bon_signe_le
+                  ? { signataire: visite!.bon_signataire ?? '', signe_le: visite!.bon_signe_le }
+                  : bon && bon.plateaux === details.plateaux && bon.palettes === details.palettes
+                    ? bon
+                    : null
+              }
+              onOuvrir={() => setBonOuvert(true)}
+              onRetirer={visite!.bon_signe_le ? undefined : () => setBon(null)}
+            />
+            {visite!.bon_signe_le && (
+              <p className="-mt-1 px-1 text-xs text-slate-500">
+                {visite!.bon_envoye_le
+                  ? t('Bon envoyé à order@ ✓. Le bon signé ne change plus.', 'Bestelbon naar order@ verstuurd ✓. De getekende bon verandert niet meer.')
+                  : t('Bon en cours d’envoi à order@.', 'Bestelbon wordt naar order@ verstuurd.')}
+              </p>
+            )}
             <button
               onClick={effacer}
               disabled={envoi}
@@ -264,6 +309,28 @@ export default function CompleterVisitePage() {
           )}
         </div>
       </div>
+
+      {bonOuvert && visite && details && (
+        <BonCommande
+          client={{
+            nom: nom.trim() || visite.commerce.nom,
+            adresse: adresseComplete(visite.commerce),
+            numero_entreprise: details.numero_entreprise,
+            adresse_facturation: details.adresse_facturation,
+            adresse_livraison: details.adresse_livraison,
+            contact_nom: details.contact_nom,
+            contact_telephone: details.contact_telephone,
+          }}
+          plateaux={details.plateaux}
+          palettes={details.palettes}
+          commercial={profile?.full_name ?? ''}
+          onFermer={() => setBonOuvert(false)}
+          onSigne={(b) => {
+            setBon(b)
+            setBonOuvert(false)
+          }}
+        />
+      )}
     </div>
   )
 }

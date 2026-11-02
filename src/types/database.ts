@@ -149,6 +149,12 @@ export interface Visite {
   photo_prise_a: string | null
   synchro_differee: boolean
   modifiee_le: string | null
+  bon_signature_path: string | null
+  bon_signataire: string | null
+  bon_signe_le: string | null
+  bon_pdf_path: string | null
+  bon_envoye_le: string | null
+  bon_erreur: string | null
   appareil_id: string | null
   modele_appareil: string | null
   drive_dossier_id: string | null

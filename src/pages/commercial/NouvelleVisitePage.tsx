@@ -16,6 +16,7 @@ import { useLangue } from '../../lib/langue'
 import type { Commerce, TypeCommerce } from '../../types/database'
 import AdalaHeader from '../../components/visites/AdalaHeader'
 import CameraCapture from '../../components/visites/CameraCapture'
+import BonCommande, { CadreBon, type BonSigne } from '../../components/visites/BonCommande'
 import ChampsVisite, { DETAILS_VIDES, INFOS_CLIENT_VIDES, adresseComplete, Puce, Section, type DetailsVisite } from '../../components/visites/ChampsVisite'
 
 function normaliser(s: string) {
@@ -57,6 +58,8 @@ export default function NouvelleVisitePage() {
   const [cameraOuverte, setCameraOuverte] = useState(false)
 
   const [details, setDetails] = useState<DetailsVisite>(DETAILS_VIDES)
+  const [bon, setBon] = useState<BonSigne | null>(null)
+  const [bonOuvert, setBonOuvert] = useState(false)
   const [envoi, setEnvoi] = useState(false)
   const [erreur, setErreur] = useState<string | null>(null)
 
@@ -135,6 +138,13 @@ export default function NouvelleVisitePage() {
     })
     setDetails((d) => ({ ...d, ...INFOS_CLIENT_VIDES }))
   }
+
+  // Un bon signé ne vaut que pour les quantités signées, et pour ce commerce.
+  const bonValable = bon && bon.plateaux === details.plateaux && bon.palettes === details.palettes ? bon : null
+  useEffect(() => {
+    if (bon && !bonValable) setBon(null)
+  }, [bon, bonValable])
+  useEffect(() => setBon(null), [commerce?.id, nouveau?.id])
 
   // L'adresse GPS arrive parfois après le choix « nouveau commerce ».
   useEffect(() => {
@@ -228,9 +238,12 @@ export default function NouvelleVisitePage() {
       synchro_differee: !navigator.onLine,
       appareil_id: identifiantAppareil(),
       modele_appareil: navigator.userAgent.slice(0, 200),
+      bon: bonValable && d.resultat === 'precommande' ? { signature: bonValable.signature, signataire: bonValable.signataire, signe_le: bonValable.signe_le } : null,
     })
 
-    let message = t(`Visite chez ${nom} enregistrée ✓`, `Bezoek bij ${nom} opgeslagen ✓`)
+    let message = bonValable
+      ? t(`Visite chez ${nom} enregistrée ✓ — bon de commande envoyé à order@`, `Bezoek bij ${nom} opgeslagen ✓ — bestelbon naar order@ verstuurd`)
+      : t(`Visite chez ${nom} enregistrée ✓`, `Bezoek bij ${nom} opgeslagen ✓`)
     if (navigator.onLine) {
       const { restantes } = await synchroniserVisites(profile.id)
       if (restantes > 0) message += t(' — elle partira dès que le réseau revient.', ' — het wordt verzonden zodra er netwerk is.')
@@ -426,6 +439,15 @@ export default function NouvelleVisitePage() {
           contactConnu={!!commerce?.contact_nom}
           adresseCommerce={adresseComplete(commerce ?? nouveau)}
         />
+
+        {(commerce || nouveau) && (
+          <CadreBon
+            quantite={details.plateaux + details.palettes}
+            bon={bonValable}
+            onOuvrir={() => setBonOuvert(true)}
+            onRetirer={() => setBon(null)}
+          />
+        )}
       </main>
 
       {/* Boutons fixes en bas, à portée de pouce */}
@@ -452,6 +474,28 @@ export default function NouvelleVisitePage() {
           </button>
         </div>
       </div>
+
+      {bonOuvert && (commerce || nouveau) && (
+        <BonCommande
+          client={{
+            nom: commerce?.nom ?? nouveau!.nom,
+            adresse: adresseComplete(commerce ?? nouveau),
+            numero_entreprise: details.numero_entreprise,
+            adresse_facturation: details.adresse_facturation,
+            adresse_livraison: details.adresse_livraison,
+            contact_nom: details.contact_nom,
+            contact_telephone: details.contact_telephone,
+          }}
+          plateaux={details.plateaux}
+          palettes={details.palettes}
+          commercial={profile?.full_name ?? ''}
+          onFermer={() => setBonOuvert(false)}
+          onSigne={(b) => {
+            setBon(b)
+            setBonOuvert(false)
+          }}
+        />
+      )}
 
       {cameraOuverte && (
         <CameraCapture

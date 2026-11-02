@@ -55,6 +55,8 @@ export interface VisiteEnAttente {
   appareil_id: string
   modele_appareil: string
   derniere_erreur?: string | null
+  /** Bon de commande signé sur la tablette (envoyé avec la visite). */
+  bon?: { signature: Blob; signataire: string; signe_le: string } | null
 }
 
 interface AdalaDB extends DBSchema {
@@ -161,6 +163,20 @@ export async function synchroniserVisites(commercialId: string): Promise<{ envoy
       continue
     }
 
+    let signaturePath: string | null = null
+    if (v.bon) {
+      signaturePath = `${commercialId}/${v.client_uuid}-signature.png`
+      const { error: errSig } = await supabase.storage
+        .from('visites-photos')
+        .upload(signaturePath, v.bon.signature, { contentType: 'image/png', upsert: false })
+      if (errSig && !/exist|duplicate/i.test(errSig.message)) {
+        const e = errSig as { message: string; status?: number; statusCode?: string }
+        const statut = e.statusCode ?? (e.status ? String(e.status) : undefined)
+        if ((await echec({ message: e.message, statusCode: statut })) === 'reseau') break
+        continue
+      }
+    }
+
     const { error } = await supabase.from('visites').insert({
       client_uuid: v.client_uuid,
       commercial_id: v.commercial_id,
@@ -197,12 +213,17 @@ export async function synchroniserVisites(commercialId: string): Promise<{ envoy
       synchro_differee: v.synchro_differee,
       appareil_id: v.appareil_id,
       modele_appareil: v.modele_appareil,
+      bon_signature_path: signaturePath,
+      bon_signataire: v.bon?.signataire ?? null,
+      bon_signe_le: v.bon?.signe_le ?? null,
     })
 
     if (!error || error.code === '23505') {
       const db = await dbPromise
       await db.delete('visites_en_attente', v.client_uuid)
       envoyees++
+      // Le bon signé part à order@ tout de suite ; la tâche du soir rattrape un échec.
+      if (v.bon) appelServeur('/api/bon-commande', { client_uuid: v.client_uuid })
     } else if ((await echec(error)) === 'reseau') {
       // Le réseau a lâché : on garde la suite pour plus tard et on la marque différée.
       break

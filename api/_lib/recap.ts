@@ -96,7 +96,11 @@ ${
   return { visites: visites.length }
 }
 
-async function envoyerMail(sujet: string, html: string) {
+export async function envoyerMail(
+  sujet: string,
+  html: string,
+  pieces: { filename: string; content: Buffer; contentType: string }[] = []
+) {
   const transport = nodemailer.createTransport({
     host: process.env.SMTP_HOST ?? 'smtp-auth.mailprotect.be',
     port: Number(process.env.SMTP_PORT ?? 465),
@@ -108,6 +112,7 @@ async function envoyerMail(sujet: string, html: string) {
     to: process.env.RECAP_DESTINATAIRE ?? 'order@adalacola.com',
     subject: sujet,
     html,
+    attachments: pieces,
   })
 }
 
