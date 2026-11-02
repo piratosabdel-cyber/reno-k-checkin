@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLangue } from '../../lib/langue'
 import { appelServeur } from '../../lib/visitesQueue'
+import { TARIF, euros, prixUnite } from '../../lib/prix'
+import { TotalCommande } from './ChampsVisite'
 
 export interface BonSigne {
   signature: Blob
@@ -203,25 +205,44 @@ export default function BonCommande({
                 <th className="p-2">{t('Produit', 'Product')}</th>
                 <th className="p-2">{t('Conditionnement', 'Verpakking')}</th>
                 <th className="p-2 text-right">{t('Quantité', 'Aantal')}</th>
+                <th className="p-2 text-right">{t('Prix unit. TVAC', 'Eenheidsprijs incl. btw')}</th>
+                <th className="p-2 text-right">{t('Total TVAC', 'Totaal incl. btw')}</th>
               </tr>
             </thead>
             <tbody>
               {plateaux > 0 && (
                 <tr className="border-b border-slate-100">
                   <td className="p-2">Adala Cola</td>
-                  <td className="p-2">{t('Plateau de 24', 'Tray van 24')}</td>
+                  <td className="p-2">
+                    {t('Plateau de 24', 'Tray van 24')}
+                    <span className="block text-xs text-slate-500">
+                      {TARIF.plateaux.canettes} × {euros(TARIF.plateaux.prixCanette)}
+                    </span>
+                  </td>
                   <td className="p-2 text-right text-lg font-bold">{plateaux}</td>
+                  <td className="p-2 text-right">{euros(prixUnite('plateaux'))}</td>
+                  <td className="p-2 text-right font-semibold">{euros(plateaux * prixUnite('plateaux'))}</td>
                 </tr>
               )}
               {palettes > 0 && (
                 <tr className="border-b border-slate-100">
                   <td className="p-2">Adala Cola</td>
-                  <td className="p-2">{t('Palette', 'Pallet')}</td>
+                  <td className="p-2">
+                    {t('Palette', 'Pallet')}
+                    <span className="block text-xs text-slate-500">
+                      {TARIF.palettes.canettes} × {euros(TARIF.palettes.prixCanette)}
+                    </span>
+                  </td>
                   <td className="p-2 text-right text-lg font-bold">{palettes}</td>
+                  <td className="p-2 text-right">{euros(prixUnite('palettes'))}</td>
+                  <td className="p-2 text-right font-semibold">{euros(palettes * prixUnite('palettes'))}</td>
                 </tr>
               )}
             </tbody>
           </table>
+          <div className="ml-auto max-w-xs">
+            <TotalCommande plateaux={plateaux} palettes={palettes} />
+          </div>
           <div className="mt-4 text-sm">
             <p className="mb-1 text-xs font-bold uppercase text-slate-400">{t('Conditions', 'Voorwaarden')}</p>
             <p>{t('Paiement à 15 jours', 'Betaling binnen 15 dagen')}</p>

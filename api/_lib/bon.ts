@@ -3,6 +3,7 @@ import { randomBytes } from 'node:crypto'
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from 'pdf-lib'
 import { envoyerMail } from './recap.js'
 import { echapper, URL_APP } from './serveur.js'
+import { TARIF, euros, prixUnite, totalCommande } from './prix.js'
 import { dateBxl, heureBxl } from './textes.js'
 
 /** Société qui vend en Belgique (mentions légales du site adalacola.com). */
@@ -63,9 +64,10 @@ export function numeroBon(v: { client_uuid: string; bon_signe_le: string | null;
 }
 
 function quantitesTexte(v: VisiteBon) {
-  return [v.plateaux ? `${v.plateaux} plateau(x) de 24` : '', v.palettes ? `${v.palettes} palette(s)` : '']
+  const produits = [v.plateaux ? `${v.plateaux} plateau(x) de 24` : '', v.palettes ? `${v.palettes} palette(s)` : '']
     .filter(Boolean)
     .join(' + ')
+  return `${produits} = ${euros(totalCommande(v.plateaux ?? 0, v.palettes ?? 0).tvac)} TVAC`
 }
 
 function logoAdala() {
@@ -183,24 +185,49 @@ export async function genererPdf(v: VisiteBon, signature: Uint8Array | null, log
   y = Math.min(bloc([facturation || '—'], M, y, col), bloc([livraison || '—'], M + L / 2 + 10, y, col)) - 16
 
   // Lignes de commande
-  const cols = [M, M + 250, M + 400]
-  page.drawRectangle({ x: M, y: y - 6, width: L, height: 22, color: rgb(0.95, 0.96, 0.97) })
-  texte('Produit / Product', cols[0] + 8, y, 10, gras)
-  texte('Conditionnement / Verpakking', cols[1] - 70, y, 10, gras)
-  texte('Quantité / Aantal', M + L - gras.widthOfTextAtSize('Quantité / Aantal', 10) - 8, y, 10, gras)
-  y -= 26
-  const lignes: [string, number][] = []
-  if (v.plateaux) lignes.push(['Plateau de 24 / Tray van 24', v.plateaux])
-  if (v.palettes) lignes.push(['Palette / Pallet', v.palettes])
-  for (const [unite, n] of lignes) {
-    texte('Adala Cola', cols[0] + 8, y, 11)
-    texte(unite, cols[1] - 70, y, 11)
-    texte(String(n), cols[2] + 60, y, 12, gras)
-    y -= 8
+  // Colonnes chiffrées alignées à droite sur ces abscisses.
+  const droite = (s: string, x: number, yy: number, taille = 10, police = normal, couleur = NOIR) =>
+    texte(s, x - police.widthOfTextAtSize(propre(s), taille), yy, taille, police, couleur)
+  const xQte = M + 300
+  const xPrix = M + 400
+  const xTotal = M + L - 8
+  page.drawRectangle({ x: M, y: y - 18, width: L, height: 34, color: rgb(0.95, 0.96, 0.97) })
+  texte('Produit / Product', M + 8, y, 10, gras)
+  droite('Quantité', xQte, y, 10, gras)
+  droite('Aantal', xQte, y - 11, 9, normal, GRIS)
+  droite('Prix unit. TVAC', xPrix, y, 10, gras)
+  droite('Eenheidsprijs', xPrix, y - 11, 9, normal, GRIS)
+  droite('Total TVAC', xTotal, y, 10, gras)
+  droite('Totaal incl. btw', xTotal, y - 11, 9, normal, GRIS)
+  y -= 38
+  const lignes: [string, keyof typeof TARIF, number][] = []
+  if (v.plateaux) lignes.push(['Plateau de 24 / Tray van 24', 'plateaux', v.plateaux])
+  if (v.palettes) lignes.push(['Palette / Pallet', 'palettes', v.palettes])
+  for (const [libelle, unite, n] of lignes) {
+    texte(`Adala Cola - ${libelle}`, M + 8, y, 11)
+    texte(`${TARIF[unite].canettes} canettes / blikjes x ${euros(TARIF[unite].prixCanette)}`, M + 8, y - 12, 8, normal, GRIS)
+    droite(String(n), xQte, y, 12, gras)
+    droite(euros(prixUnite(unite)), xPrix, y, 11)
+    droite(euros(n * prixUnite(unite)), xTotal, y, 11, gras)
+    y -= 20
     page.drawLine({ start: { x: M, y }, end: { x: M + L, y }, thickness: 0.5, color: rgb(0.85, 0.86, 0.88) })
     y -= 18
   }
-  y -= 6
+
+  // Totaux
+  const total = totalCommande(v.plateaux ?? 0, v.palettes ?? 0)
+  const xLabel = M + L - 250
+  for (const [label, montant, fort] of [
+    ['Total HTVA / Totaal excl. btw', total.htva, false],
+    ['TVA 6 % / Btw 6 %', total.tva, false],
+    ['Total TVAC / Totaal incl. btw', total.tvac, true],
+  ] as const) {
+    texte(label, xLabel, y, fort ? 11 : 10, fort ? gras : normal)
+    droite(euros(montant), xTotal, y, fort ? 12 : 10, fort ? gras : normal)
+    y -= fort ? 18 : 14
+  }
+  texte(`${total.canettes} canettes / blikjes`, M + 8, y + 32, 9, normal, GRIS)
+  y -= 10
 
   // Le bon part chez le client : jamais les remarques internes de la visite.
   texte('CONDITIONS / VOORWAARDEN', M, y, 9, gras, GRIS)
@@ -245,7 +272,7 @@ export async function genererPdf(v: VisiteBon, signature: Uint8Array | null, log
   }
 
   texte(
-    'Document établi avec l’app Adala Visites. Prix et conditions selon le tarif Adala en vigueur.',
+    'Document établi avec l’app Adala Visites. Prix de lancement Adala, TVA 6 % incluse.',
     M,
     M - 10,
     8,

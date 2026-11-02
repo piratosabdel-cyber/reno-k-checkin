@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react'
 import type { ResultatVisite } from '../../types/database'
 import { FONCTIONS_CONTACT, REMARQUES_RAPIDES, RESULTATS, dansNJours } from '../../lib/visites'
 import { tr, useLangue } from '../../lib/langue'
+import { TARIF, euros, prixUnite, totalCommande } from '../../lib/prix'
 
 export interface DetailsVisite {
   resultat: ResultatVisite | null
@@ -180,6 +181,28 @@ function Compteur({ label, valeur, onChange }: { label: string; valeur: number; 
   )
 }
 
+/** Montant de la commande : HTVA, TVA 6 % et total TVAC (aussi sur le bon de commande). */
+export function TotalCommande({ plateaux, palettes }: { plateaux: number; palettes: number }) {
+  const { t } = useLangue()
+  const total = totalCommande(plateaux, palettes)
+  const ligne = (label: string, montant: number, fort = false) => (
+    <div className={`flex justify-between ${fort ? 'text-lg font-bold text-slate-900' : 'text-sm text-slate-600'}`}>
+      <span>{label}</span>
+      <span>{euros(montant)}</span>
+    </div>
+  )
+  return (
+    <div className="mt-3 space-y-1 border-t border-slate-200 pt-2">
+      <p className="text-xs text-slate-500">
+        {total.canettes.toLocaleString('fr-BE')} {t('canettes', 'blikjes')}
+      </p>
+      {ligne(t('Total HTVA', 'Totaal excl. btw'), total.htva)}
+      {ligne(t('TVA 6 %', 'Btw 6 %'), total.tva)}
+      {ligne(t('Total TVAC', 'Totaal incl. btw'), total.tvac, true)}
+    </div>
+  )
+}
+
 const RELANCES: { label: string; nl: string; jours: number }[] = [
   { label: '1 semaine', nl: '1 week', jours: 7 },
   { label: '2 semaines', nl: '2 weken', jours: 14 },
@@ -271,6 +294,14 @@ export default function ChampsVisite({
             valeur={quantite}
             onChange={setSaisie}
           />
+          <p className="text-sm text-slate-500">
+            {unite === 'plateaux'
+              ? t('Prix de lancement', 'Lanceringsprijs')
+              : t('Prix palette', 'Palletprijs')}
+            {` : ${euros(TARIF[unite].prixCanette)}/${t('canette', 'blik')}`}
+            {` · ${TARIF[unite].canettes} ${t('canettes', 'blikjes')} = ${euros(prixUnite(unite))} ${t('TVAC', 'incl. btw')}`}
+            {quantite > 1 && <strong className="text-slate-700">{` · × ${quantite} = ${euros(quantite * prixUnite(unite))}`}</strong>}
+          </p>
           {(quantite > 0 || dansCommande) && (
             <button
               type="button"
@@ -308,7 +339,10 @@ export default function ChampsVisite({
                   .filter((u) => details[u] > 0)
                   .map((u) => (
                     <li key={u} className="flex items-center gap-2 rounded-lg bg-white p-2 shadow-sm">
-                      <span className="min-w-0 flex-1 text-base text-slate-800">{nomUnite(u)}</span>
+                      <span className="min-w-0 flex-1 text-base text-slate-800">
+                        {nomUnite(u)}
+                        <span className="block text-sm text-slate-500">{euros(details[u] * prixUnite(u))}</span>
+                      </span>
                       <span className="w-12 text-right text-xl font-bold text-slate-900">{details[u]}</span>
                       <button
                         type="button"
@@ -332,6 +366,7 @@ export default function ChampsVisite({
                   ))}
               </ul>
             )}
+            {details.plateaux + details.palettes > 0 && <TotalCommande plateaux={details.plateaux} palettes={details.palettes} />}
           </div>
           <p className="text-xs text-slate-400">
             {t('Un produit ajouté passe la visite en « Précommande ».', 'Met een product wordt het bezoek een « Voorbestelling ».')}
