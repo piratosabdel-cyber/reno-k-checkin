@@ -247,7 +247,6 @@ export async function genererPdf(
       'Europalette : échangée à la livraison ou facturée 25 € par palette / Europallet: geruild bij levering of 25 € per pallet aangerekend',
       'Paiement à 15 jours / Betaling binnen 15 dagen',
       'Livraison sur rendez-vous / Levering op afspraak',
-      `Business developer : ${v.commercial?.full_name ?? '—'}`,
     ],
     M,
     y - 15,

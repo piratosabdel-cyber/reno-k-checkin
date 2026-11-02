@@ -5,7 +5,6 @@ import { appelServeur, demanderArchivageDrive } from '../../lib/visitesQueue'
 import { TYPES_COMMERCE } from '../../lib/visites'
 import { useLangue } from '../../lib/langue'
 import type { TypeCommerce, Visite } from '../../types/database'
-import { useAuth } from '../../context/AuthContext'
 import AdalaHeader from '../../components/visites/AdalaHeader'
 import BonCommande, { CadreBon, EnvoiBonClient, type BonSigne } from '../../components/visites/BonCommande'
 import CameraCapture from '../../components/visites/CameraCapture'
@@ -26,7 +25,6 @@ export default function CompleterVisitePage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { t, locale, labelType } = useLangue()
-  const { profile } = useAuth()
   const [bon, setBon] = useState<BonSigne | null>(null)
   const [bonOuvert, setBonOuvert] = useState(false)
   const [envoiClient, setEnvoiClient] = useState(false)
@@ -453,7 +451,6 @@ export default function CompleterVisitePage() {
           }}
           plateaux={details.plateaux}
           palettes={details.palettes}
-          businessDeveloper={profile?.full_name ?? ''}
           onFermer={() => setBonOuvert(false)}
           onSigne={(b) => {
             setBon(b)
