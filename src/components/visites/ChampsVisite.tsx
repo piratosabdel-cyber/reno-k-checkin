@@ -208,6 +208,22 @@ export default function ChampsVisite({
   const [unite, setUnite] = useState<'plateaux' | 'palettes'>(
     details.palettes > 0 && details.plateaux === 0 ? 'palettes' : 'plateaux'
   )
+  // Quantité en cours de choix : elle n'entre dans la commande qu'une fois confirmée.
+  const [saisie, setSaisie] = useState<number | null>(null)
+  const quantite = saisie ?? details[unite]
+  const dansCommande = details[unite] > 0
+  const nomUnite = (u: 'plateaux' | 'palettes') =>
+    u === 'plateaux' ? t('📦 Plateaux de 24', '📦 Trays van 24') : t('🚛 Palettes', '🚛 Paletten')
+
+  function choisirUnite(u: 'plateaux' | 'palettes') {
+    setUnite(u)
+    setSaisie(null)
+  }
+
+  function mettreQuantite(u: 'plateaux' | 'palettes', n: number) {
+    // Une quantité commandée, c'est une précommande.
+    onChange({ ...details, [u]: n, ...(n > 0 ? { resultat: 'precommande' as const } : {}) })
+  }
   const set =<K extends keyof DetailsVisite>(k: K, v: DetailsVisite[K]) => onChange({ ...details, [k]: v })
 
   function basculerRemarque(r: string) {
@@ -245,30 +261,80 @@ export default function ChampsVisite({
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-2">
             {(['plateaux', 'palettes'] as const).map((u) => (
-              <Puce
-                key={u}
-                actif={unite === u}
-                onClick={() => {
-                  if (u === unite) return
-                  // On commande soit en plateaux, soit en palettes : la quantité suit l'unité choisie.
-                  setUnite(u)
-                  onChange({ ...details, [u]: details[unite], [unite]: 0 })
-                }}
-              >
-                {u === 'plateaux' ? t('📦 Plateaux de 24', '📦 Trays van 24') : t('🚛 Palettes', '🚛 Paletten')}
+              <Puce key={u} actif={unite === u} onClick={() => choisirUnite(u)}>
+                {nomUnite(u)}
               </Puce>
             ))}
           </div>
           <Compteur
             label={unite === 'plateaux' ? t('Nombre de plateaux de 24', 'Aantal trays van 24') : t('Nombre de palettes', 'Aantal paletten')}
-            valeur={details[unite]}
-            // Une quantité commandée, c'est une précommande.
-            onChange={(n) =>
-              onChange({ ...details, [unite]: n, ...(n > 0 ? { resultat: 'precommande' as const } : {}) })
-            }
+            valeur={quantite}
+            onChange={setSaisie}
           />
+          {(quantite > 0 || dansCommande) && (
+            <button
+              type="button"
+              disabled={quantite === details[unite]}
+              onClick={() => {
+                mettreQuantite(unite, quantite)
+                setSaisie(null)
+              }}
+              className={`min-h-14 w-full rounded-xl text-lg font-semibold active:scale-[0.99] ${
+                quantite === details[unite]
+                  ? 'border-2 border-emerald-200 bg-emerald-50 text-emerald-700'
+                  : quantite === 0
+                    ? 'border-2 border-red-200 bg-white text-red-700'
+                    : 'bg-emerald-600 text-white'
+              }`}
+            >
+              {quantite === details[unite]
+                ? t('✓ Dans la commande', '✓ In de bestelling')
+                : quantite === 0
+                  ? t('Retirer de la commande', 'Uit de bestelling halen')
+                  : dansCommande
+                    ? t(`✓ Confirmer : ${quantite}`, `✓ Bevestigen: ${quantite}`)
+                    : t(`✓ Ajouter à la commande : ${quantite}`, `✓ Toevoegen aan bestelling: ${quantite}`)}
+            </button>
+          )}
+
+          {/* Récapitulatif : chaque produit commandé, modifiable. */}
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+            <p className="mb-2 text-sm font-semibold text-slate-700">{t('Votre commande', 'Uw bestelling')}</p>
+            {details.plateaux + details.palettes === 0 ? (
+              <p className="text-sm text-slate-400">{t('Aucun produit pour l’instant.', 'Nog geen producten.')}</p>
+            ) : (
+              <ul className="space-y-2">
+                {(['plateaux', 'palettes'] as const)
+                  .filter((u) => details[u] > 0)
+                  .map((u) => (
+                    <li key={u} className="flex items-center gap-2 rounded-lg bg-white p-2 shadow-sm">
+                      <span className="min-w-0 flex-1 text-base text-slate-800">{nomUnite(u)}</span>
+                      <span className="w-12 text-right text-xl font-bold text-slate-900">{details[u]}</span>
+                      <button
+                        type="button"
+                        onClick={() => choisirUnite(u)}
+                        className="min-h-11 rounded-lg border border-slate-300 px-3 text-sm font-semibold text-slate-700 active:bg-slate-100"
+                      >
+                        {t('Modifier', 'Wijzigen')}
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={t('Retirer', 'Verwijderen')}
+                        onClick={() => {
+                          mettreQuantite(u, 0)
+                          if (u === unite) setSaisie(null)
+                        }}
+                        className="min-h-11 w-11 rounded-lg border border-slate-300 text-lg text-slate-500 active:bg-slate-100"
+                      >
+                        ✕
+                      </button>
+                    </li>
+                  ))}
+              </ul>
+            )}
+          </div>
           <p className="text-xs text-slate-400">
-            {t('Une quantité indiquée passe la visite en « Précommande ».', 'Met een aantal wordt het bezoek een « Voorbestelling ».')}
+            {t('Un produit ajouté passe la visite en « Précommande ».', 'Met een product wordt het bezoek een « Voorbestelling ».')}
           </p>
         </div>
       </Section>
