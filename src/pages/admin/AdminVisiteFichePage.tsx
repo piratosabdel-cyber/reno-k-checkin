@@ -37,7 +37,7 @@ export default function AdminVisiteFichePage() {
     const visite = data as unknown as VisiteAvecRelations
     setV(visite)
     const liens = await liensPhotos([visite.photo_path])
-    setPhoto(liens[visite.photo_path] ?? null)
+    setPhoto(visite.photo_path ? (liens[visite.photo_path] ?? null) : null)
   }
 
   useEffect(() => {
@@ -231,7 +231,7 @@ export default function AdminVisiteFichePage() {
             </a>
           ) : (
             <div className="flex h-60 items-center justify-center rounded-xl bg-slate-200 text-slate-500">
-              Photo indisponible
+              {v.photo_path ? 'Photo indisponible' : 'Pas de photo'}
             </div>
           )}
 

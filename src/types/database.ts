@@ -145,7 +145,7 @@ export interface Visite {
   heure_ouverture: string | null
   heure_appareil: string
   heure_serveur: string
-  photo_path: string
+  photo_path: string | null
   photo_prise_a: string | null
   synchro_differee: boolean
   modifiee_le: string | null

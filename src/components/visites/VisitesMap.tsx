@@ -73,9 +73,9 @@ export default function VisitesMap({
                     <span style={{ color: '#d97706' }}>⚠ {v.alertes.map((a) => a.detail).join(' · ')}</span>
                   </>
                 )}
-                {photos[v.photo_path] && (
+                {v.photo_path && photos[v.photo_path] && (
                   <img
-                    src={photos[v.photo_path]}
+                    src={photos[v.photo_path!]}
                     alt=""
                     style={{ marginTop: 6, width: 180, height: 120, objectFit: 'cover', borderRadius: 6 }}
                   />

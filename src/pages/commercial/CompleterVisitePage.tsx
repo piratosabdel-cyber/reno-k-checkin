@@ -82,6 +82,7 @@ export default function CompleterVisitePage() {
           numero_tva: v.numero_tva ?? '',
           reseau_social: v.reseau_social ?? '',
         })
+        if (!v.photo_path) return
         const { data: lien } = await supabase.storage.from('visites-photos').createSignedUrl(v.photo_path, 3600)
         setPhoto(lien?.signedUrl ?? null)
       })
@@ -219,8 +220,10 @@ export default function CompleterVisitePage() {
               <a href={photo} target="_blank" rel="noreferrer">
                 <img src={photo} alt={t('Photo de la visite', 'Foto van het bezoek')} className="max-h-80 w-full bg-slate-200 object-contain" />
               </a>
-            ) : (
+            ) : visite.photo_path ? (
               <div className="flex h-40 items-center justify-center bg-slate-200 text-slate-500">Photo…</div>
+            ) : (
+              <div className="flex h-16 items-center justify-center bg-slate-100 text-sm text-slate-500">{t('Pas de photo', 'Geen foto')}</div>
             )}
             <div className="space-y-1 p-4 text-sm">
               <p className="text-slate-500 first-letter:uppercase">{date}</p>

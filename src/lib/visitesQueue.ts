@@ -49,8 +49,8 @@ export interface VisiteEnAttente {
   adresse_gps: string | null
   heure_ouverture: string
   heure_appareil: string
-  photo: Blob
-  photo_prise_a: string
+  photo: Blob | null
+  photo_prise_a: string | null
   synchro_differee: boolean
   appareil_id: string
   modele_appareil: string
@@ -151,10 +151,13 @@ export async function synchroniserVisites(commercialId: string): Promise<{ envoy
       }
     }
 
-    const photoPath = `${commercialId}/${v.client_uuid}.jpg`
-    const { error: errPhoto } = await supabase.storage
-      .from('visites-photos')
-      .upload(photoPath, v.photo, { contentType: 'image/jpeg', upsert: false })
+    // La photo est facultative.
+    const photoPath = v.photo ? `${commercialId}/${v.client_uuid}.jpg` : null
+    const { error: errPhoto } = v.photo
+      ? await supabase.storage
+          .from('visites-photos')
+          .upload(photoPath!, v.photo, { contentType: 'image/jpeg', upsert: false })
+      : { error: null }
     const dejaLa = errPhoto && /exist|duplicate/i.test(errPhoto.message)
     if (errPhoto && !dejaLa) {
       const e = errPhoto as { message: string; status?: number; statusCode?: string }

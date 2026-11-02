@@ -44,7 +44,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.status(500).json({ error: error.message })
     return
   }
-  await db.storage.from('visites-photos').remove([v.photo_path as string])
+  if (v.photo_path) await db.storage.from('visites-photos').remove([v.photo_path as string])
 
   // La visite est déjà effacée : un souci côté Drive ne doit pas faire échouer la demande.
   let drive: string | null = null

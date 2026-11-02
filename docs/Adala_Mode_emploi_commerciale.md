@@ -18,13 +18,13 @@ La position est lue **uniquement** au moment où tu ouvres et enregistres une vi
    - si l'app propose « Tu es chez … ? », appuie sur **Oui** ;
    - sinon, tape les premières lettres du nom ;
    - pour un nouveau commerce, appuie sur **+ Nouveau commerce** : l'adresse est proposée toute seule, il reste à choisir le type.
-3. **📷 Prendre la photo** : la vitrine, le rayon ou le frigo.
+3. **📷 Prendre la photo** (facultatif) : la vitrine, le rayon ou le frigo.
 4. **Résultat** : un seul choix. Pour une précommande, choisis **Plateaux de 24** ou **Palettes**, puis la quantité avec **−** / **+** (ou 1, 2, 5, 10).
 5. **Relance**, **remarques** et **contact client** : touche les boutons. Pour dicter un commentaire, utilise le 🎤 du clavier. Dans **Contact client**, tu peux aussi noter le **n° d'entreprise**, l'**adresse de facturation**, l'**adresse de livraison** et les **réseaux sociaux**. Si la livraison se fait à l'adresse de facturation, laisse l'interrupteur « identique à la facturation » allumé : rien à retaper. Pour un commerce déjà connu, tout est déjà rempli.
 6. **Bon de commande** (si le client commande) : après avoir mis la quantité, appuie sur **« ✍ Faire signer le bon de commande »**. Le client voit le bon (Adala, ses coordonnées, les quantités), écrit son nom et signe du doigt dans le cadre, puis **Valider la signature**. Si tu changes la quantité après, il faut refaire signer.
 7. **Enregistrer la visite**. Le bon signé part **aussitôt** en PDF à order@adalacola.com (sans réseau : dès que le réseau revient). Le récapitulatif de la journée arrive à order@ chaque soir à 19 h.
 
-**Pas le temps ?** Prends juste la photo, choisis le résultat, puis appuie sur **« Enregistrer et compléter plus tard »**. La visite apparaît en haut de l'écran d'accueil dans **À compléter**.
+**Pas le temps ?** Choisis juste le commerce et le résultat, puis appuie sur **« Enregistrer et compléter plus tard »**. La visite apparaît en haut de l'écran d'accueil dans **À compléter**.
 
 **Un oubli ?** Sur l'écran d'accueil, touche la visite (✎) : tu revois la photo et l'adresse, et tu peux tout corriger (nom et type du commerce, résultat, quantités, contact, relance, commentaire) ou **effacer** la visite. C'est possible pendant **7 jours**. La photo, l'adresse, l'heure et la position GPS ne changent pas.
 

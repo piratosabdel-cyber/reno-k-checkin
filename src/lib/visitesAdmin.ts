@@ -6,7 +6,8 @@ export const SELECT_VISITE =
   '*, commerce:commerces(id, nom, commune, type, statut, latitude, longitude), commercial:profiles(id, full_name), alertes:visites_alertes(code, detail)'
 
 /** Liens temporaires (1 h) vers les photos privées. */
-export async function liensPhotos(paths: string[]): Promise<Record<string, string>> {
+export async function liensPhotos(tous: (string | null)[]): Promise<Record<string, string>> {
+  const paths = tous.filter((p): p is string => !!p)
   if (paths.length === 0) return {}
   const { data } = await supabase.storage.from('visites-photos').createSignedUrls(paths, 3600)
   const out: Record<string, string> = {}

@@ -206,7 +206,7 @@ export default function AdminCommerceFichePage() {
             to={`/admin/visites/${v.id}`}
             className="flex gap-4 rounded-xl bg-white p-3 shadow-sm hover:bg-slate-50"
           >
-            {photos[v.photo_path] ? (
+            {v.photo_path && photos[v.photo_path] ? (
               <img src={photos[v.photo_path]} alt="" className="h-20 w-20 shrink-0 rounded-lg object-cover" />
             ) : (
               <div className="h-20 w-20 shrink-0 rounded-lg bg-slate-200" />

@@ -157,7 +157,6 @@ export default function NouvelleVisitePage() {
     if (geoRefus) return t('La localisation est refusée : impossible d’enregistrer la visite.', 'Locatie geweigerd: het bezoek kan niet opgeslagen worden.')
     if (!commerce && !nouveau) return t('Choisis le commerce.', 'Kies de zaak.')
     if (nouveau && !nouveau.nom.trim()) return t('Indique le nom du commerce.', 'Geef de naam van de zaak.')
-    if (!photo) return t('Prends la photo du commerce.', 'Neem een foto van de zaak.')
     if (!details.resultat) return t('Choisis le résultat de la visite.', 'Kies het resultaat van het bezoek.')
     if (!rapide && details.resultat === 'precommande' && details.plateaux + details.palettes === 0)
       return t('Indique le nombre de plateaux ou de palettes.', 'Geef het aantal trays of paletten.')
@@ -233,8 +232,8 @@ export default function NouvelleVisitePage() {
       adresse_gps: adresseGps?.adresse ?? null,
       heure_ouverture: heureOuverture,
       heure_appareil: new Date().toISOString(),
-      photo: photo!.blob,
-      photo_prise_a: photo!.priseA,
+      photo: photo?.blob ?? null,
+      photo_prise_a: photo?.priseA ?? null,
       synchro_differee: !navigator.onLine,
       appareil_id: identifiantAppareil(),
       modele_appareil: navigator.userAgent.slice(0, 200),
@@ -411,7 +410,7 @@ export default function NouvelleVisitePage() {
         </Section>
 
         {/* 2. Photo */}
-        <Section titre={t('Photo (vitrine, rayon ou frigo)', 'Foto (etalage, rek of koelkast)')}>
+        <Section titre={t('Photo (facultative : vitrine, rayon ou frigo)', 'Foto (optioneel: etalage, rek of koelkast)')}>
           {photo ? (
             <div className="flex items-center gap-4">
               <img src={photo.url} alt={t('Photo de la visite', 'Foto van het bezoek')} className="h-28 w-28 rounded-xl object-cover" />

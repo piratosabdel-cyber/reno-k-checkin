@@ -164,7 +164,7 @@ interface VisiteComplete {
   precision_envoi_m: number | null
   adresse_gps: string | null
   heure_serveur: string
-  photo_path: string
+  photo_path: string | null
   a_completer: boolean
   drive_dossier_id: string | null
   drive_rapport_id: string | null
@@ -333,7 +333,9 @@ async function archiverVisite(db: SupabaseClient, drive: Drive, visiteId: string
   }
 
   // Lien temporaire vers la photo : Google l'intègre dans le rapport.
-  const { data: signe } = await db.storage.from('visites-photos').createSignedUrl(v.photo_path, 600)
+  const signe = v.photo_path
+    ? (await db.storage.from('visites-photos').createSignedUrl(v.photo_path, 600)).data
+    : null
   const html = rapportHtml(v, c, signe?.signedUrl ?? null)
   const nomDossier = `${horodatageDossier(v.heure_serveur)} — ${LABEL_RESULTAT[v.resultat]}${v.a_completer ? ' (à compléter)' : ''}`
 
@@ -345,7 +347,7 @@ async function archiverVisite(db: SupabaseClient, drive: Drive, visiteId: string
     // Visite complétée ensuite (ou archivage interrompu) : on renomme le dossier.
     await drive.renommer(v.drive_dossier_id, nomDossier)
   }
-  if (!v.drive_rapport_id) {
+  if (!v.drive_rapport_id && v.photo_path) {
     const { data: photo } = await db.storage.from('visites-photos').download(v.photo_path)
     if (photo) await drive.envoyer('photo.jpg', v.drive_dossier_id, Buffer.from(await photo.arrayBuffer()), 'image/jpeg')
   }
