@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { randomBytes } from 'node:crypto'
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from 'pdf-lib'
 import { envoyerMail } from './recap.js'
 import { echapper, URL_APP } from './serveur.js'
@@ -41,12 +42,13 @@ interface VisiteBon {
   bon_envoye_le: string | null
   bon_version: number
   bon_client_envoye_le: string | null
+  bon_client_code: string | null
   commerce: { nom: string; adresse: string | null; commune: string | null; type: string } | null
   commercial: { full_name: string } | null
 }
 
 const SELECT_BON =
-  'id, client_uuid, commercial_id, plateaux, palettes, remarques, commentaire, contact_nom, contact_fonction, contact_telephone, contact_email, adresse_livraison, adresse_facturation, numero_entreprise, type_commerce, bon_signature_path, bon_signataire, bon_signe_le, bon_envoye_le, bon_version, bon_client_envoye_le, commerce:commerces(nom, adresse, commune, type), commercial:profiles(full_name)'
+  'id, client_uuid, commercial_id, plateaux, palettes, remarques, commentaire, contact_nom, contact_fonction, contact_telephone, contact_email, adresse_livraison, adresse_facturation, numero_entreprise, type_commerce, bon_signature_path, bon_signataire, bon_signe_le, bon_envoye_le, bon_version, bon_client_envoye_le, bon_client_code, commerce:commerces(nom, adresse, commune, type), commercial:profiles(full_name)'
 
 /**
  * BC-20261102-3F9A : date de signature + début de l'identifiant de la visite.
@@ -297,7 +299,8 @@ export async function envoyerBon(db: SupabaseClient, filtre: { id?: string; clie
 
 /**
  * Bon pas encore signé (quantités modifiées, client absent) : PDF à signer,
- * rangé dans le stockage, avec un lien valable 30 jours pour WhatsApp.
+ * rangé dans le stockage, avec un lien court (visites.adalacola.com/b/…)
+ * qui tient sur une ligne dans WhatsApp.
  */
 export async function preparerBonClient(db: SupabaseClient, id: string, commercialId: string | null) {
   const v = await chargerVisite(db, { id }, commercialId)
@@ -308,10 +311,11 @@ export async function preparerBonClient(db: SupabaseClient, id: string, commerci
   const chemin = `${v.commercial_id}/${v.client_uuid}-bon-a-signer-v${v.bon_version}.pdf`
   const { error } = await db.storage.from('visites-photos').upload(chemin, pdf, { contentType: 'application/pdf', upsert: true })
   if (error) throw new Error(error.message)
-  const { data: lien } = await db.storage.from('visites-photos').createSignedUrl(chemin, 30 * 24 * 3600, {
-    download: `${numero}.pdf`,
-  })
-  return { v, pdf, numero, chemin, url: lien?.signedUrl ?? null }
+  if (!v.bon_client_code) {
+    v.bon_client_code = randomBytes(6).toString('base64url')
+    await db.from('visites').update({ bon_client_code: v.bon_client_code }).eq('id', v.id)
+  }
+  return { v, pdf, numero, chemin, url: `${URL_APP}/b/${v.bon_client_code}` }
 }
 
 /**

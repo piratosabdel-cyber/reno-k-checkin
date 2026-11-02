@@ -1,5 +1,6 @@
 {
   "rewrites": [
+    { "source": "/b/:code", "destination": "/api/bon-pdf?c=:code" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "functions": {

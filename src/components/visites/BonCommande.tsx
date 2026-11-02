@@ -317,10 +317,12 @@ export function EnvoiBonClient({
 
   const message = bon
     ? t(
-        `Bonjour, voici le bon de commande Adala Cola ${bon.numero} pour ${commerce}. Merci de le signer et de nous renvoyer une copie signée ici ou à order@adalacola.com.`,
-        `Goeiedag, hierbij de bestelbon van Adala Cola ${bon.numero} voor ${commerce}. Gelieve hem te ondertekenen en een getekende kopie terug te sturen hier of naar order@adalacola.com.`
+        `Bonjour, voici le bon de commande Adala Cola ${bon.numero} pour ${commerce}.\nMerci de le signer et de nous renvoyer une copie signée ici ou à order@adalacola.com.`,
+        `Goeiedag, hierbij de bestelbon van Adala Cola ${bon.numero} voor ${commerce}.\nGelieve hem te ondertekenen en een getekende kopie terug te sturen hier of naar order@adalacola.com.`
       )
     : ''
+  // WhatsApp n'affiche pas de texte cliquable : un lien court, seul sur sa ligne.
+  const messageLien = bon?.url ? `${message}\n\n📄 ${t('Bon de commande', 'Bestelbon')} : ${bon.url}` : message
 
   async function noter(canal: 'whatsapp' | 'email' | 'partage') {
     setEnvoi(true)
@@ -335,7 +337,7 @@ export function EnvoiBonClient({
     if (!bon) return
     if (!(await noter('whatsapp'))) return
     const numero = numeroWhatsapp(telephone)
-    window.location.href = `https://wa.me/${numero}?text=${encodeURIComponent(`${message}\n${bon.url ?? ''}`)}`
+    window.location.href = `https://wa.me/${numero}?text=${encodeURIComponent(messageLien)}`
     onEnvoye(t('Bon envoyé au client par WhatsApp. En attente de la copie signée.', 'Bestelbon via WhatsApp naar de klant. Wachten op de getekende kopie.'))
   }
 
