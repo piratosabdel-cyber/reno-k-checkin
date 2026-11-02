@@ -487,6 +487,7 @@ export default function NouvelleVisitePage() {
           }}
           plateaux={details.plateaux}
           palettes={details.palettes}
+          businessDeveloper={profile?.full_name ?? ''}
           onFermer={() => setBonOuvert(false)}
           onSigne={(b) => {
             setBon(b)

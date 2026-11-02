@@ -202,12 +202,18 @@ export async function genererPdf(v: VisiteBon, signature: Uint8Array | null, log
   }
   y -= 6
 
-  const notes = [...(v.remarques ?? []), v.commentaire].filter(Boolean).join(' - ')
-  if (notes) {
-    texte('REMARQUES / OPMERKINGEN', M, y, 9, gras, GRIS)
-    y = bloc([notes], M, y - 15, L) - 8
-  }
-  // Ni commercial(e) ni type de commerce sur le bon : il part chez le client.
+  // Le bon part chez le client : jamais les remarques internes de la visite.
+  texte('CONDITIONS / VOORWAARDEN', M, y, 9, gras, GRIS)
+  y = bloc(
+    [
+      'Paiement à 15 jours / Betaling binnen 15 dagen',
+      'Livraison sur rendez-vous / Levering op afspraak',
+      `Business developer : ${v.commercial?.full_name ?? '—'}`,
+    ],
+    M,
+    y - 15,
+    L
+  )
   y -= 22
 
   // Signature

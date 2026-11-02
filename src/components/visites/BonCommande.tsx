@@ -82,12 +82,14 @@ export default function BonCommande({
   client,
   plateaux,
   palettes,
+  businessDeveloper,
   onSigne,
   onFermer,
 }: {
   client: ClientBon
   plateaux: number
   palettes: number
+  businessDeveloper: string
   onSigne: (b: BonSigne) => void
   onFermer: () => void
 }) {
@@ -220,6 +222,12 @@ export default function BonCommande({
               )}
             </tbody>
           </table>
+          <div className="mt-4 text-sm">
+            <p className="mb-1 text-xs font-bold uppercase text-slate-400">{t('Conditions', 'Voorwaarden')}</p>
+            <p>{t('Paiement à 15 jours', 'Betaling binnen 15 dagen')}</p>
+            <p>{t('Livraison sur rendez-vous', 'Levering op afspraak')}</p>
+            <p>Business developer : {businessDeveloper || '—'}</p>
+          </div>
         </div>
 
         <div className="space-y-3 rounded-2xl bg-white p-4 shadow-sm">
