@@ -245,6 +245,14 @@ export default function BonCommande({
           </div>
           <div className="mt-4 text-sm">
             <p className="mb-1 text-xs font-bold uppercase text-slate-400">{t('Conditions', 'Voorwaarden')}</p>
+            <p>{t('Prix de lancement', 'Lanceringsprijzen')}</p>
+            <p>{t('Livraison gratuite au lancement', 'Gratis levering bij de lancering')}</p>
+            <p>
+              {t(
+                'Europalette : échangée à la livraison ou facturée 25 € par palette',
+                'Europallet: geruild bij levering of 25 € per pallet aangerekend'
+              )}
+            </p>
             <p>{t('Paiement à 15 jours', 'Betaling binnen 15 dagen')}</p>
             <p>{t('Livraison sur rendez-vous', 'Levering op afspraak')}</p>
             <p>Business developer : {businessDeveloper || '—'}</p>

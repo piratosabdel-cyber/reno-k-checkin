@@ -242,6 +242,9 @@ export async function genererPdf(
   texte('CONDITIONS / VOORWAARDEN', M, y, 9, gras, GRIS)
   y = bloc(
     [
+      'Prix de lancement / Lanceringsprijzen',
+      'Livraison gratuite au lancement / Gratis levering bij de lancering',
+      'Europalette : échangée à la livraison ou facturée 25 € par palette / Europallet: geruild bij levering of 25 € per pallet aangerekend',
       'Paiement à 15 jours / Betaling binnen 15 dagen',
       'Livraison sur rendez-vous / Levering op afspraak',
       `Business developer : ${v.commercial?.full_name ?? '—'}`,
