@@ -81,6 +81,15 @@ function fichierAdala(nom: string) {
     .catch(() => null)
 }
 
+/** Un bon ne part jamais sans les conditions : on réessaie, puis on refuse l'envoi. */
+async function conditionsVente(): Promise<Uint8Array> {
+  for (let essai = 0; essai < 3; essai++) {
+    const cgv = await fichierAdala(CGV)
+    if (cgv) return cgv
+  }
+  throw new Error('Conditions générales de vente introuvables : bon non envoyé.')
+}
+
 async function chargerVisite(db: SupabaseClient, filtre: { id?: string; client_uuid?: string }, commercialId: string | null) {
   let requete = db.from('visites').select(SELECT_BON)
   requete = filtre.id ? requete.eq('id', filtre.id) : requete.eq('client_uuid', filtre.client_uuid!)
@@ -120,7 +129,7 @@ export async function genererPdf(
   v: VisiteBon,
   signature: Uint8Array | null,
   logo: Uint8Array | null,
-  cgv: Uint8Array | null = null
+  cgv: Uint8Array
 ): Promise<Uint8Array> {
   const pdf = await PDFDocument.create()
   pdf.setTitle(`Bon de commande ${numeroBon(v)}`)
@@ -256,18 +265,16 @@ export async function genererPdf(
 
   // Signature
   texte('BON POUR COMMANDE / VOOR AKKOORD', M, y, 9, gras, GRIS)
-  if (cgv) {
-    y = bloc(
-      [
-        'Le client accepte les conditions générales de vente jointes (pages suivantes).',
-        'De klant aanvaardt de bijgevoegde algemene verkoopsvoorwaarden (volgende pagina’s).',
-      ],
-      M,
-      y - 13,
-      L,
-      9
-    ) + 6
-  }
+  y = bloc(
+    [
+      'Le client accepte les conditions générales de vente jointes (pages suivantes).',
+      'De klant aanvaardt de bijgevoegde algemene verkoopsvoorwaarden (volgende pagina’s).',
+    ],
+    M,
+    y - 13,
+    L,
+    9
+  ) + 6
   y -= 8
   page.drawRectangle({ x: M, y: y - 110, width: 260, height: 110, borderColor: rgb(0.8, 0.82, 0.85), borderWidth: 1 })
   if (signature) {
@@ -302,10 +309,8 @@ export async function genererPdf(
     normal,
     GRIS
   )
-  if (cgv) {
-    const conditions = await PDFDocument.load(cgv)
-    for (const p of await pdf.copyPages(conditions, conditions.getPageIndices())) pdf.addPage(p)
-  }
+  const conditions = await PDFDocument.load(cgv)
+  for (const p of await pdf.copyPages(conditions, conditions.getPageIndices())) pdf.addPage(p)
   return pdf.save()
 }
 
@@ -324,7 +329,7 @@ export async function envoyerBon(db: SupabaseClient, filtre: { id?: string; clie
       const { data: fichier } = await db.storage.from('visites-photos').download(v.bon_signature_path)
       if (fichier) signature = new Uint8Array(await fichier.arrayBuffer())
     }
-    const pdf = await genererPdf(v, signature, await fichierAdala('icon-192.png'), await fichierAdala(CGV))
+    const pdf = await genererPdf(v, signature, await fichierAdala('icon-192.png'), await conditionsVente())
     const numero = numeroBon(v)
     // Chaque version garde son PDF : le bon d'origine reste consultable.
     const chemin = `${v.commercial_id}/${v.client_uuid}-bon${v.bon_version > 1 ? `-v${v.bon_version}` : ''}.pdf`
@@ -359,7 +364,7 @@ export async function preparerBonClient(db: SupabaseClient, id: string, commerci
   const v = await chargerVisite(db, { id }, commercialId)
   if (v.bon_signe_le) throw new Error('Ce bon est déjà signé.')
   if (!(v.plateaux || v.palettes)) throw new Error('Aucune quantité commandée.')
-  const pdf = await genererPdf(v, null, await fichierAdala('icon-192.png'), await fichierAdala(CGV))
+  const pdf = await genererPdf(v, null, await fichierAdala('icon-192.png'), await conditionsVente())
   const numero = numeroBon(v)
   const chemin = `${v.commercial_id}/${v.client_uuid}-bon-a-signer-v${v.bon_version}.pdf`
   const { error } = await db.storage.from('visites-photos').upload(chemin, pdf, { contentType: 'application/pdf', upsert: true })
