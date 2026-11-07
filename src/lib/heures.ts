@@ -1,33 +1,36 @@
 import { distanceMetres } from './geo'
 import type { Chantier, Pointage } from '../types/database'
 
-/** Dépôts Reno-K servant de points de référence pour le forfait déplacement. */
+/** Dépôts Reno-K (servent à nommer le lieu d'un pointage, voir lieu.ts). */
 export const DEPOTS = [
   { nom: 'Dépôt Mollem', adresse: 'Z.5 Mollem 44, 1730 Asse', lat: 50.916299, lng: 4.21763 },
   { nom: 'Dépôt Ternat', adresse: 'Overnelleweg 15, 1740 Ternat', lat: 50.8848254, lng: 4.1531558 },
   { nom: 'Dépôt Police', adresse: 'Z.5 Mollem 130, 1730 Asse', lat: 50.9177095, lng: 4.2226389 },
 ]
 
-/** En deçà de cette distance d'un dépôt, le chantier est "local" : aucun forfait déplacement. */
-export const RAYON_LOCAL_KM = 8
-/** Jusqu'à cette distance du dépôt le plus proche : 15 min ; au-delà : 30 min. */
+/** Point de référence UNIQUE du forfait déplacement : bureau Z.5 Mollem 44, 1730 Asse. */
+export const BUREAU = DEPOTS[0]
+
+/** En deçà de cette distance du bureau, le chantier est "local" : aucun forfait déplacement. */
+export const RAYON_LOCAL_KM = 5
+/** De 5 km jusqu'à cette distance du bureau : 15 min ; au-delà : 30 min. */
 export const RAYON_COURT_KM = 20
 
-/** Distance (km) entre un chantier et le dépôt le plus proche. */
+/** Distance (km, à vol d'oiseau) entre un chantier et le bureau Z.5 Mollem 44. */
 export function distanceDepotKm(chantier: Pick<Chantier, 'latitude' | 'longitude'>): number {
-  return Math.min(...DEPOTS.map((d) => distanceMetres(d.lat, d.lng, chantier.latitude!, chantier.longitude!))) / 1000
+  return distanceMetres(BUREAU.lat, BUREAU.lng, chantier.latitude!, chantier.longitude!) / 1000
 }
 
 /**
  * Forfait déplacement "aller" payé pour un chantier donné, selon sa distance
- * au dépôt le plus proche : 0 si <= 8 km (local), 15 min si <= 20 km, 30 min
- * au-delà. Retourne 0 si le chantier n'a pas de coordonnées GPS (impossible
+ * au bureau Z.5 Mollem 44 : 0 sous 5 km, 15 min de 5 à 20 km, 30 min au-delà
+ * de 20 km. Retourne 0 si le chantier n'a pas de coordonnées GPS (impossible
  * à calculer).
  */
 export function tempsDeplacementMs(chantier: Pick<Chantier, 'latitude' | 'longitude'> | undefined | null): number {
   if (!chantier?.latitude || !chantier?.longitude) return 0
   const distanceKm = distanceDepotKm(chantier)
-  if (distanceKm <= RAYON_LOCAL_KM) return 0
+  if (distanceKm < RAYON_LOCAL_KM) return 0
   const minutes = distanceKm <= RAYON_COURT_KM ? 15 : 30
   return minutes * 60000
 }
