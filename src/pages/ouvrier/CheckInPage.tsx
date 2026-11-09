@@ -103,12 +103,14 @@ export default function CheckInPage() {
 
     setMesPropositions((propositions as Chantier[]) ?? [])
 
-    const assignedActive =
-      (assigned
-        ?.map((a) => a.chantier as unknown as Chantier)
-        .filter((c) => c && c.statut === 'actif') as Chantier[]) ?? []
-
-    const list = assignedActive.length > 0 ? assignedActive : (allActive ?? [])
+    // Tout ouvrier voit TOUS les chantiers actifs. Ceux auxquels il est
+    // assigné sont simplement placés en tête de liste.
+    const assignedIds = new Set(
+      (assigned ?? []).map((a) => (a.chantier as unknown as Chantier | null)?.id).filter(Boolean)
+    )
+    const list = [...((allActive as Chantier[]) ?? [])].sort(
+      (a, b) => Number(assignedIds.has(b.id)) - Number(assignedIds.has(a.id))
+    )
     setChantiers(list)
     setTousChantiers((allActive as Chantier[]) ?? [])
 
