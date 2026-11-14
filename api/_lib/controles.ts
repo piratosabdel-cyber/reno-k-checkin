@@ -190,7 +190,7 @@ export async function calculerControles(
       if (js === 0) ajouter(j, 'dimanche', 'attention', `${k.km} km un dimanche (${fmtJour(j)}).`)
       // 3. Samedi sans pointage.
       else if (js === 6 && aPointe === false)
-        ajouter(j, 'samedi_sans_pointage', 'attention', `${k.km} km le samedi ${fmtJour(j)} sans pointage du chauffeur.`)
+        ajouter(j, 'samedi_sans_pointage', 'attention', `${k.km} km le ${fmtJour(j)} sans pointage du chauffeur.`)
       // 4. Jour de semaine : km sans pointage du chauffeur.
       else if (js !== 6 && aPointe === false && k.km >= KM_SANS_POINTAGE)
         ajouter(j, 'km_sans_pointage', 'attention', `${k.km} km le ${fmtJour(j)} alors que le chauffeur n'a pas pointé.`)
