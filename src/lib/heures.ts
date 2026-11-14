@@ -11,10 +11,10 @@ export const DEPOTS = [
 /** Point de référence UNIQUE du forfait déplacement : bureau Z.5 Mollem 44, 1730 Asse. */
 export const BUREAU = DEPOTS[0]
 
-/** En deçà de cette distance du bureau, le chantier est "local" : aucun forfait déplacement. */
-export const RAYON_LOCAL_KM = 5
-/** De 5 km jusqu'à cette distance du bureau : 15 min ; au-delà : 30 min. */
-export const RAYON_COURT_KM = 20
+/** Jusqu'à cette distance du bureau (incluse), le chantier est "local" : aucun forfait déplacement. */
+export const RAYON_LOCAL_KM = 4
+/** Au-delà de 4 km et jusqu'à cette distance du bureau : 15 min ; au-delà : 30 min. */
+export const RAYON_COURT_KM = 8
 
 /** Distance (km, à vol d'oiseau) entre un chantier et le bureau Z.5 Mollem 44. */
 export function distanceDepotKm(chantier: Pick<Chantier, 'latitude' | 'longitude'>): number {
@@ -23,14 +23,14 @@ export function distanceDepotKm(chantier: Pick<Chantier, 'latitude' | 'longitude
 
 /**
  * Forfait déplacement "aller" payé pour un chantier donné, selon sa distance
- * au bureau Z.5 Mollem 44 : 0 sous 5 km, 15 min de 5 à 20 km, 30 min au-delà
- * de 20 km. Retourne 0 si le chantier n'a pas de coordonnées GPS (impossible
+ * au bureau Z.5 Mollem 44 (à vol d'oiseau) : 0 jusqu'à 4 km, 15 min de 4 à
+ * 8 km, 30 min au-delà de 8 km. Retourne 0 si le chantier n'a pas de coordonnées GPS (impossible
  * à calculer).
  */
 export function tempsDeplacementMs(chantier: Pick<Chantier, 'latitude' | 'longitude'> | undefined | null): number {
   if (!chantier?.latitude || !chantier?.longitude) return 0
   const distanceKm = distanceDepotKm(chantier)
-  if (distanceKm < RAYON_LOCAL_KM) return 0
+  if (distanceKm <= RAYON_LOCAL_KM) return 0
   const minutes = distanceKm <= RAYON_COURT_KM ? 15 : 30
   return minutes * 60000
 }

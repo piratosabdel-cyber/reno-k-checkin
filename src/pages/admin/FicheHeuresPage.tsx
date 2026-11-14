@@ -219,7 +219,7 @@ export default function FicheHeuresPage() {
 
           <p className="mt-8 text-xs text-slate-400">
             Pause de midi déduite forfaitairement (30 min/jour), sauf le samedi. Déplacement payé à l'aller,
-            forfait unique par jour selon la distance au dépôt le plus proche (rien à 8 km ou moins d'un dépôt, 15 min jusqu'à 20 km, 30 min au-delà).
+            forfait unique par jour selon la distance à vol d'oiseau au bureau Z.5 Mollem 44 (rien jusqu'à 4 km, 15 min de 4 à 8 km, 30 min au-delà).
           </p>
         </div>
       </div>
