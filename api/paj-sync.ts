@@ -90,12 +90,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Jours déjà complets (enregistrés après la fin de la journée) : on ne les retélécharge pas.
     const { data: deja } = await db
       .from('vehicules_km_jour')
-      .select('vehicule_id, jour, maj_le')
+      .select('vehicule_id, jour, maj_le, a_quarts:km_quarts')
       .gte('jour', jours[0])
       .lte('jour', jours[jours.length - 1])
     const complet = new Set(
       (deja ?? [])
-        .filter((d) => new Date(d.maj_le as string).getTime() / 1000 >= minuitBruxelles(jourSuivant(d.jour as string)))
+        .filter(
+          (d) =>
+            d.a_quarts != null &&
+            new Date(d.maj_le as string).getTime() / 1000 >= minuitBruxelles(jourSuivant(d.jour as string))
+        )
         .map((d) => `${d.vehicule_id}|${d.jour}`)
     )
 
@@ -127,6 +131,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             km: r.km,
             km_paj: distancePaj,
             points: r.points,
+            km_quarts: r.kmQuarts,
             premier_mouvement: r.premier ? heureBruxelles(r.premier.dateunix) : null,
             dernier_mouvement: r.dernier ? heureBruxelles(r.dernier.dateunix) : null,
             depart_lat: r.premier?.lat ?? null,

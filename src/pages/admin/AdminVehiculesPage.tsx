@@ -17,6 +17,8 @@ interface KmJour {
   vehicule_id: string
   jour: string
   km: number
+  km_travail: number | null
+  km_hors_travail: number | null
   points: number
   premier_mouvement: string | null
   dernier_mouvement: string | null
@@ -79,7 +81,7 @@ export default function AdminVehiculesPage() {
       supabase.from('profiles').select('*').eq('role', 'ouvrier').order('full_name'),
       supabase
         .from('vehicules_km_jour')
-        .select('vehicule_id, jour, km, points, premier_mouvement, dernier_mouvement')
+        .select('vehicule_id, jour, km, km_travail, km_hors_travail, points, premier_mouvement, dernier_mouvement')
         .gte('jour', debut)
         .lte('jour', fin)
         .order('jour'),
@@ -88,7 +90,14 @@ export default function AdminVehiculesPage() {
     ])
     setVehicules((v.data as Vehicule[]) ?? [])
     setOuvriers((o.data as Profile[]) ?? [])
-    setKms(((k.data as KmJour[]) ?? []).map((x) => ({ ...x, km: Number(x.km) })))
+    setKms(
+      ((k.data as KmJour[]) ?? []).map((x) => ({
+        ...x,
+        km: Number(x.km),
+        km_travail: x.km_travail == null ? null : Number(x.km_travail),
+        km_hors_travail: x.km_hors_travail == null ? null : Number(x.km_hors_travail),
+      }))
+    )
     setControles((c.data as Controle[]) ?? [])
     setSynchros((s.data as Synchro[]) ?? [])
     setLoading(false)
@@ -143,6 +152,7 @@ export default function AdminVehiculesPage() {
       return
     }
     setEdition(null)
+    setRetour({ ok: true, texte: 'Véhicule enregistré. Relancez le contrôle du mois pour recalculer les km hors travail.' })
     load()
   }
 
@@ -156,6 +166,9 @@ export default function AdminVehiculesPage() {
         return {
           v,
           km: lignes.reduce((s, k) => s + k.km, 0),
+          repartitionConnue: lignes.some((k) => k.km_travail != null),
+          kmTravail: lignes.reduce((s, k) => s + (k.km_travail ?? 0), 0),
+          kmHors: lignes.reduce((s, k) => s + (k.km_hors_travail ?? 0), 0),
           joursRoules: lignes.filter((k) => k.km >= 10).length,
           joursSansSignal: lignes.filter((k) => k.points === 0).length,
           alertes: ctrl.filter((c) => c.gravite === 'alerte').length,
@@ -173,7 +186,7 @@ export default function AdminVehiculesPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Véhicules</h1>
           <p className="text-sm text-slate-500">
-            Km GPS (PAJ) et contrôle des incohérences. Contrôle automatique le 2 de chaque mois pour le mois
+            Km GPS (PAJ) et contrôle des incohérences. Km travail = de 6 h à 18 h les jours où le chauffeur a pointé (jusqu’à son départ s’il part après 18 h) ; tout le reste est hors travail. Contrôle automatique le 2 de chaque mois pour le mois
             précédent.
           </p>
         </div>
@@ -221,12 +234,14 @@ export default function AdminVehiculesPage() {
       ) : (
         <>
           <div className="overflow-x-auto rounded-xl bg-white shadow-sm">
-            <table className="w-full min-w-[720px] text-sm">
+            <table className="w-full min-w-[900px] text-sm">
               <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
                 <tr>
                   <th className="px-4 py-3">Véhicule</th>
                   <th className="px-4 py-3">Chauffeur</th>
                   <th className="px-4 py-3 text-right">Km du mois</th>
+                  <th className="px-4 py-3 text-right">Km travail</th>
+                  <th className="px-4 py-3 text-right">Km hors travail</th>
                   <th className="px-4 py-3 text-right">Jours roulés</th>
                   <th className="px-4 py-3 text-right">Jours sans signal</th>
                   <th className="px-4 py-3">Contrôle</th>
@@ -234,7 +249,7 @@ export default function AdminVehiculesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {resume.map(({ v, km, joursRoules, joursSansSignal, alertes, aVerifier }) => (
+                {resume.map(({ v, km, repartitionConnue, kmTravail, kmHors, joursRoules, joursSansSignal, alertes, aVerifier }) => (
                   <tr key={v.id} className={v.actif ? '' : 'text-slate-400'}>
                     <td className="px-4 py-3">
                       <button className="text-left font-medium hover:underline" onClick={() => setDetailId(detailId === v.id ? null : v.id)}>
@@ -247,6 +262,12 @@ export default function AdminVehiculesPage() {
                     </td>
                     <td className="px-4 py-3">{nomOuvrier(v.ouvrier_id)}</td>
                     <td className="px-4 py-3 text-right font-semibold">{Math.round(km).toLocaleString('fr-BE')}</td>
+                    <td className="px-4 py-3 text-right">
+                      {repartitionConnue ? Math.round(kmTravail).toLocaleString('fr-BE') : '—'}
+                    </td>
+                    <td className={`px-4 py-3 text-right ${repartitionConnue && kmHors >= 10 ? 'font-semibold text-red-700' : ''}`}>
+                      {repartitionConnue ? Math.round(kmHors).toLocaleString('fr-BE') : v.ouvrier_id ? '—' : 'chauffeur ?'}
+                    </td>
                     <td className="px-4 py-3 text-right">{joursRoules}</td>
                     <td className={`px-4 py-3 text-right ${joursSansSignal > 1 ? 'font-semibold text-red-700' : ''}`}>
                       {joursSansSignal}
@@ -281,6 +302,9 @@ export default function AdminVehiculesPage() {
                     <div key={k.jour} className={`rounded px-2 py-1 ${k.points === 0 ? 'bg-red-50 text-red-700' : 'bg-slate-50'}`}>
                       <span className="text-slate-500">{fmtJour(k.jour)}</span>{' '}
                       <strong>{k.points === 0 ? 'pas de signal' : `${k.km} km`}</strong>
+                      {k.km_hors_travail != null && k.km_hors_travail > 0 && (
+                        <div className="text-red-700">dont {k.km_hors_travail} km hors travail</div>
+                      )}
                       {k.premier_mouvement && (
                         <div className="text-slate-400">
                           {k.premier_mouvement}–{k.dernier_mouvement}

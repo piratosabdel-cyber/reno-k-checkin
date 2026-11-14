@@ -78,3 +78,11 @@ create policy "controles: admin lit" on public.vehicules_controles for select us
 
 drop policy if exists "synchros: admin lit" on public.vehicules_synchros;
 create policy "synchros: admin lit" on public.vehicules_synchros for select using (public.is_admin());
+
+-- Km de travail / hors travail (ajout du 14/11/2026).
+-- km_quarts : km par quart d'heure (96 cases, heure de Bruxelles), pour pouvoir
+-- recalculer la répartition sans retélécharger PAJ quand un pointage ou le
+-- chauffeur change.
+alter table public.vehicules_km_jour add column if not exists km_quarts numeric[];
+alter table public.vehicules_km_jour add column if not exists km_travail numeric(7,1);
+alter table public.vehicules_km_jour add column if not exists km_hors_travail numeric(7,1);

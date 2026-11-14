@@ -129,16 +129,33 @@ export interface ResumeJour {
   points: number
   premier: PajPoint | null
   dernier: PajPoint | null
+  /** Km par quart d'heure (heure de Bruxelles) : 96 cases, 0 = 00:00–00:15. */
+  kmQuarts: number[]
+}
+
+/** Quart d'heure (0–95) de l'heure de Bruxelles d'un instant Unix. */
+function quartBruxelles(unix: number, cacheDecalage: Map<number, number>): number {
+  const heure = Math.floor(unix / 3600)
+  let dec = cacheDecalage.get(heure)
+  if (dec === undefined) {
+    dec = decalageMin(new Date(heure * 3600 * 1000))
+    cacheDecalage.set(heure, dec)
+  }
+  const secLocales = (((unix + dec * 60) % 86400) + 86400) % 86400
+  return Math.min(95, Math.floor(secLocales / 900))
 }
 
 /**
  * Somme des segments GPS, en écartant le bruit à l'arrêt (petits sauts de
  * position quand la vitesse est nulle) et les sauts impossibles (> 180 km/h).
+ * Chaque segment est rangé dans le quart d'heure où il se termine.
  */
 export function resumerJour(brut: PajPoint[]): ResumeJour {
   const pts = brut
     .filter((p) => p.lat && p.lng && (!p.accuracy || p.accuracy < 100))
     .sort((a, b) => a.dateunix - b.dateunix)
+  const quarts = new Array<number>(96).fill(0)
+  const cache = new Map<number, number>()
   let m = 0
   let premier: PajPoint | null = null
   let dernier: PajPoint | null = null
@@ -151,8 +168,15 @@ export function resumerJour(brut: PajPoint[]): ResumeJour {
     if (d < 30) continue
     if (a.speed === 0 && b.speed === 0 && d < 150) continue
     m += d
+    quarts[quartBruxelles(b.dateunix, cache)] += d
     if (!premier) premier = a
     dernier = b
   }
-  return { km: Math.round(m / 100) / 10, points: pts.length, premier, dernier }
+  return {
+    km: Math.round(m / 100) / 10,
+    points: pts.length,
+    premier,
+    dernier,
+    kmQuarts: quarts.map((x) => Math.round(x / 10) / 100),
+  }
 }
