@@ -25,6 +25,12 @@ type PointageAffichage = Pointage & { enAttente?: boolean; refus?: string | null
 
 /** Au-delà de cette distance du chantier le plus proche, on ne propose rien : l'ouvrier choisit dans la liste. */
 const DISTANCE_DETECTION_M = 2000
+/** Autres chantiers proposés en second choix s'ils sont aussi à moins de cette distance. */
+const DISTANCE_AUTRES_CHOIX_M = 1000
+
+function fmtDistance(m: number) {
+  return m < 1000 ? `${m} m` : `${(m / 1000).toFixed(1)} km`
+}
 /** Après "Non, je suis encore sur place", on ne repropose pas le départ avant ce délai. */
 const DELAI_RAPPEL_SORTIE_MS = 10 * 60000
 
@@ -59,12 +65,20 @@ export default function CheckInPage() {
   // Détection automatique du chantier le plus proche (GPS) — l'ouvrier doit confirmer.
   const [detection, setDetection] = useState<
     | { etat: 'recherche' }
-    | { etat: 'trouve'; chantier: Chantier; distance: number }
+    | {
+        etat: 'trouve'
+        chantier: Chantier
+        distance: number
+        /** Autres chantiers proches (moins de 1 km) : proposés en second choix. */
+        autres: { chantier: Chantier; distance: number }[]
+      }
     | { etat: 'aucun' }
     | { etat: 'erreur'; raison: string }
   >({ etat: 'recherche' })
   const [chantierConfirme, setChantierConfirme] = useState(false)
   const [choixManuel, setChoixManuel] = useState(false)
+  // Distance (m) de chaque chantier à la dernière position connue : sert à trier la liste manuelle.
+  const [distancesChantiers, setDistancesChantiers] = useState<Map<string, number>>(new Map())
 
   // Sortie de zone détectée pendant qu'une arrivée est en cours.
   const [sortieZone, setSortieZone] = useState<{
@@ -185,13 +199,14 @@ export default function CheckInPage() {
     setDetection({ etat: 'recherche' })
     try {
       const pos = await getCurrentPosition()
-      let meilleur: { chantier: Chantier; distance: number } | null = null
-      for (const c of candidats) {
-        const distance = Math.round(distanceMetres(pos.lat, pos.lng, c.latitude!, c.longitude!))
-        if (!meilleur || distance < meilleur.distance) meilleur = { chantier: c, distance }
-      }
+      const tries = candidats
+        .map((c) => ({ chantier: c, distance: Math.round(distanceMetres(pos.lat, pos.lng, c.latitude!, c.longitude!)) }))
+        .sort((a, b) => a.distance - b.distance)
+      setDistancesChantiers(new Map(tries.map((t) => [t.chantier.id, t.distance])))
+      const [meilleur, ...suivants] = tries
       if (meilleur && meilleur.distance <= DISTANCE_DETECTION_M) {
-        setDetection({ etat: 'trouve', ...meilleur })
+        const autres = suivants.filter((t) => t.distance <= DISTANCE_AUTRES_CHOIX_M).slice(0, 3)
+        setDetection({ etat: 'trouve', ...meilleur, autres })
         setChantierId(meilleur.chantier.id)
       } else {
         setDetection({ etat: 'aucun' })
@@ -575,11 +590,20 @@ export default function CheckInPage() {
                   className="w-full rounded-xl border border-slate-300 px-4 py-4 text-lg focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200"
                 >
                   {chantiers.length === 0 && <option value="">Aucun chantier actif</option>}
-                  {chantiers.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.nom}
-                    </option>
-                  ))}
+                  {[...chantiers]
+                    .sort(
+                      (a, b) =>
+                        (distancesChantiers.get(a.id) ?? Infinity) - (distancesChantiers.get(b.id) ?? Infinity)
+                    )
+                    .map((c) => {
+                      const d = distancesChantiers.get(c.id)
+                      return (
+                        <option key={c.id} value={c.id}>
+                          {c.nom} — {c.adresse}
+                          {d != null ? ` (${fmtDistance(d)})` : ''}
+                        </option>
+                      )
+                    })}
                 </select>
                 <div className="mt-3 flex gap-3">
                   <button
@@ -625,6 +649,26 @@ export default function CheckInPage() {
                   >
                     ✓ Oui, je suis ici
                   </button>
+                  {detection.autres.length > 0 && (
+                    <>
+                      <p className="mt-2 text-sm text-slate-600">Ou un autre chantier tout proche :</p>
+                      {detection.autres.map((a) => (
+                        <button
+                          key={a.chantier.id}
+                          onClick={() => {
+                            setChantierId(a.chantier.id)
+                            setChantierConfirme(true)
+                          }}
+                          className="w-full rounded-xl border border-orange-300 bg-white px-4 py-3 text-left active:bg-orange-50"
+                        >
+                          <span className="block font-semibold text-slate-900">
+                            {a.chantier.nom} <span className="font-normal text-slate-500">— {fmtDistance(a.distance)}</span>
+                          </span>
+                          <span className="block text-sm text-slate-600">{a.chantier.adresse}</span>
+                        </button>
+                      ))}
+                    </>
+                  )}
                   <button
                     onClick={() => setChoixManuel(true)}
                     className="w-full rounded-xl border border-slate-300 py-3 text-sm font-semibold text-slate-600"
