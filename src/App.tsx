@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Navigate, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import LoginPage from './pages/LoginPage'
@@ -9,14 +9,6 @@ import AdminChantiersPage from './pages/admin/AdminChantiersPage'
 import AdminOuvriersPage from './pages/admin/AdminOuvriersPage'
 import AdminHeuresPage from './pages/admin/AdminHeuresPage'
 import FicheHeuresPage from './pages/admin/FicheHeuresPage'
-import VisitesAccueilPage from './pages/commercial/VisitesAccueilPage'
-import NouvelleVisitePage from './pages/commercial/NouvelleVisitePage'
-import CompleterVisitePage from './pages/commercial/CompleterVisitePage'
-import EnvoyerListePage from './pages/commercial/EnvoyerListePage'
-import AdminVisitesPage from './pages/admin/AdminVisitesPage'
-import AdminVisiteFichePage from './pages/admin/AdminVisiteFichePage'
-import AdminCommercesPage from './pages/admin/AdminCommercesPage'
-import AdminCommerceFichePage from './pages/admin/AdminCommerceFichePage'
 import { useAutoUpdate } from './hooks/useAutoUpdate'
 
 function AutoUpdate() {
@@ -53,44 +45,7 @@ export default function App() {
             <Route path="chantiers" element={<AdminChantiersPage />} />
             <Route path="ouvriers" element={<AdminOuvriersPage />} />
             <Route path="heures" element={<AdminHeuresPage />} />
-            <Route path="visites" element={<AdminVisitesPage />} />
-            <Route path="visites/:id" element={<AdminVisiteFichePage />} />
-            <Route path="commerces" element={<AdminCommercesPage />} />
-            <Route path="commerces/:id" element={<AdminCommerceFichePage />} />
           </Route>
-
-          <Route
-            path="/visites"
-            element={
-              <ProtectedRoute requireRole="commercial">
-                <VisitesAccueilPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/visites/nouvelle"
-            element={
-              <ProtectedRoute requireRole="commercial">
-                <NouvelleVisitePage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/visites/:id/completer"
-            element={
-              <ProtectedRoute requireRole="commercial">
-                <CompleterVisitePage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/visites/envoyer"
-            element={
-              <ProtectedRoute requireRole="commercial">
-                <EnvoyerListePage />
-              </ProtectedRoute>
-            }
-          />
 
           <Route
             path="/admin/heures/fiche/:ouvrierId"
@@ -100,6 +55,9 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* Ancienne adresse ou lien inconnu : retour à l'accueil. */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

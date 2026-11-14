@@ -1,17 +1,5 @@
 {
   "rewrites": [
-    { "source": "/b/:code", "destination": "/api/bon-pdf?c=:code" },
     { "source": "/(.*)", "destination": "/index.html" }
-  ],
-  "functions": {
-    "api/recap-soir.ts": { "maxDuration": 300 },
-    "api/drive-archiver.ts": { "maxDuration": 60 },
-    "api/supprimer-visite.ts": { "maxDuration": 60 },
-    "api/bon-commande.ts": { "maxDuration": 60 },
-    "api/bon-client.ts": { "maxDuration": 60 }
-  },
-  "crons": [
-    { "path": "/api/recap-soir", "schedule": "0 17 * * *" },
-    { "path": "/api/recap-soir", "schedule": "0 18 * * *" }
   ]
 }

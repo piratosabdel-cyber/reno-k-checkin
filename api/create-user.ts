@@ -1,6 +1,6 @@
 import { roleAppelant, supabaseAdmin, type VercelRequest, type VercelResponse } from './_lib/serveur.js'
 
-// Création d'un compte commercial par l'admin. Le rôle est posé dans
+// Création d'un compte ouvrier par l'admin. Le rôle est posé dans
 // app_metadata (modifiable uniquement côté serveur) : personne ne peut se
 // donner un rôle depuis le navigateur.
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -18,9 +18,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     email?: string
     password?: string
     fullName?: string
-    role?: string
   }
-  const role = body?.role === 'commercial' ? 'commercial' : 'ouvrier'
+  const role = 'ouvrier'
   if (!body?.email || !body.fullName || !body.password || body.password.length < 6) {
     res.status(400).json({ error: 'Nom, e-mail et mot de passe (6 caractères minimum) obligatoires.' })
     return

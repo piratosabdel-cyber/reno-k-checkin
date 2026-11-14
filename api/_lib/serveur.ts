@@ -1,5 +1,4 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
-import { createHmac, timingSafeEqual } from 'node:crypto'
 
 // Utilitaires partagés par les fonctions serveur (le préfixe « _ » empêche
 // Vercel d'exposer ce dossier comme une route).
@@ -51,34 +50,3 @@ export async function roleAppelant(req: VercelRequest): Promise<{ id: string; ro
   if (!data?.active) return null
   return { id: user.id, role: data.role as string }
 }
-
-function egal(a: string, b: string) {
-  const x = Buffer.from(a)
-  const y = Buffer.from(b)
-  return x.length === y.length && timingSafeEqual(x, y)
-}
-
-/** Appel venant du planificateur Vercel (ou d'une personne qui connaît CRON_SECRET). */
-export function estCron(req: VercelRequest): boolean {
-  const secret = process.env.CRON_SECRET
-  const token = jeton(req)
-  return !!secret && !!token && egal(token, secret)
-}
-
-export function signer(valeur: string): string {
-  return createHmac('sha256', env('CRON_SECRET')).update(valeur).digest('hex')
-}
-
-export function verifierSignature(valeur: string, signature: string): boolean {
-  return egal(signer(valeur), signature)
-}
-
-export function echapper(s: unknown): string {
-  return String(s ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-}
-
-export const URL_APP = process.env.APP_URL ?? 'https://visites.adalacola.com'

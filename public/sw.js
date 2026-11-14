@@ -1,4 +1,4 @@
-// Service worker minimal : permet d'ouvrir l'app sans réseau (visites hors
+// Service worker minimal : permet d'ouvrir l'app sans réseau (pointage hors
 // connexion). Les pages passent TOUJOURS d'abord par le réseau, pour que la
 // mise à jour automatique continue de fonctionner ; le cache ne sert qu'en
 // secours. Les appels à Supabase et à /api ne sont jamais interceptés.
