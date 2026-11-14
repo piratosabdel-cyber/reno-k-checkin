@@ -9,6 +9,7 @@ import AdminChantiersPage from './pages/admin/AdminChantiersPage'
 import AdminOuvriersPage from './pages/admin/AdminOuvriersPage'
 import AdminHeuresPage from './pages/admin/AdminHeuresPage'
 import FicheHeuresPage from './pages/admin/FicheHeuresPage'
+import AdminVehiculesPage from './pages/admin/AdminVehiculesPage'
 import { useAutoUpdate } from './hooks/useAutoUpdate'
 
 function AutoUpdate() {
@@ -45,6 +46,7 @@ export default function App() {
             <Route path="chantiers" element={<AdminChantiersPage />} />
             <Route path="ouvriers" element={<AdminOuvriersPage />} />
             <Route path="heures" element={<AdminHeuresPage />} />
+            <Route path="vehicules" element={<AdminVehiculesPage />} />
           </Route>
 
           <Route

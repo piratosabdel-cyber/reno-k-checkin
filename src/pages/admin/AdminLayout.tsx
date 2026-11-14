@@ -46,6 +46,9 @@ export default function AdminLayout() {
           <NavLink to="/admin/heures" className={linkClass}>
             Heures
           </NavLink>
+          <NavLink to="/admin/vehicules" className={linkClass}>
+            Véhicules
+          </NavLink>
         </nav>
       </header>
 
