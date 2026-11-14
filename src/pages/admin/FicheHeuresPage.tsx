@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { useParams, useSearchParams, Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { construireResumeOuvrier, formatHeures, type CreneauAvecDeplacement } from '../../lib/heures'
@@ -16,6 +16,56 @@ export default function FicheHeuresPage() {
   const [chantiersMap, setChantiersMap] = useState<Map<string, Chantier>>(new Map())
   const [nomsChantiers, setNomsChantiers] = useState<Map<string, string>>(new Map())
   const [loading, setLoading] = useState(true)
+  const [pdfEnCours, setPdfEnCours] = useState(false)
+  const ficheRef = useRef<HTMLDivElement>(null)
+
+  /**
+   * Télécharge directement la fiche en PDF (A4), sans passer par la boîte
+   * d'impression. Les pages sont coupées entre deux lignes du tableau, jamais
+   * au milieu d'une ligne.
+   */
+  async function telechargerPdf() {
+    const el = ficheRef.current
+    if (!el || !ouvrier) return
+    setPdfEnCours(true)
+    try {
+      const [{ default: html2canvas }, { jsPDF }] = await Promise.all([import('html2canvas-pro'), import('jspdf')])
+      const echelle = 2
+      const canvas = await html2canvas(el, { scale: echelle, backgroundColor: '#ffffff' })
+
+      const pdf = new jsPDF({ unit: 'mm', format: 'a4' })
+      const margeMm = 10
+      const largeurMm = 210 - 2 * margeMm
+      const hauteurPageMm = 297 - 2 * margeMm
+      const pxParMm = canvas.width / largeurMm
+      const hauteurPagePx = hauteurPageMm * pxParMm
+
+      const haut = el.getBoundingClientRect().top
+      const coupures = [...el.querySelectorAll('tr')].map((tr) => (tr.getBoundingClientRect().bottom - haut) * echelle)
+
+      let y = 0
+      let premiere = true
+      while (y < canvas.height - 1) {
+        let fin = Math.min(y + hauteurPagePx, canvas.height)
+        if (fin < canvas.height) {
+          const coupure = coupures.filter((b) => b > y + 1 && b <= fin).pop()
+          if (coupure) fin = coupure
+        }
+        const morceau = document.createElement('canvas')
+        morceau.width = canvas.width
+        morceau.height = Math.ceil(fin - y)
+        morceau.getContext('2d')!.drawImage(canvas, 0, y, canvas.width, morceau.height, 0, 0, canvas.width, morceau.height)
+        if (!premiere) pdf.addPage()
+        pdf.addImage(morceau.toDataURL('image/jpeg', 0.92), 'JPEG', margeMm, margeMm, largeurMm, morceau.height / pxParMm)
+        premiere = false
+        y = fin
+      }
+
+      pdf.save(`Fiche d'heures - ${ouvrier.full_name} - ${from} au ${to}.pdf`)
+    } finally {
+      setPdfEnCours(false)
+    }
+  }
 
   useEffect(() => {
     if (!ouvrierId) return
@@ -73,15 +123,27 @@ export default function FicheHeuresPage() {
           <Link to="/admin/heures" className="text-sm text-slate-500 hover:underline">
             ← Retour
           </Link>
-          <button
-            onClick={() => window.print()}
-            className="rounded-lg bg-orange-600 px-4 py-2 font-medium text-white hover:bg-orange-700"
-          >
-            Imprimer / Enregistrer en PDF
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={telechargerPdf}
+              disabled={pdfEnCours}
+              className="rounded-lg border border-orange-600 bg-white px-4 py-2 font-medium text-orange-700 hover:bg-orange-50 disabled:opacity-50"
+            >
+              {pdfEnCours ? 'Création du PDF...' : 'Télécharger PDF'}
+            </button>
+            <button
+              onClick={() => window.print()}
+              className="rounded-lg bg-orange-600 px-4 py-2 font-medium text-white hover:bg-orange-700"
+            >
+              Imprimer / Enregistrer en PDF
+            </button>
+          </div>
         </div>
 
-        <div className="rounded-2xl bg-white p-8 shadow-sm print:rounded-none print:p-0 print:shadow-none">
+        <div
+          ref={ficheRef}
+          className="rounded-2xl bg-white p-8 shadow-sm print:rounded-none print:p-0 print:shadow-none"
+        >
           <div className="mb-8 flex items-start justify-between border-b border-slate-200 pb-6">
             <div>
               <h1 className="text-2xl font-bold text-slate-900">Reno-K</h1>

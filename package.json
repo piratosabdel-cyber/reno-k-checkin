@@ -12,7 +12,9 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.112.2",
     "@tailwindcss/vite": "^4.3.3",
+    "html2canvas-pro": "^2.6.4",
     "idb": "^8.0.3",
+    "jspdf": "^4.2.1",
     "leaflet": "^1.9.4",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
